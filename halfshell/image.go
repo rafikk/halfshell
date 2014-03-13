@@ -23,7 +23,9 @@ package halfshell
 import (
 	"fmt"
 	"io/ioutil"
+	"mime"
 	"net/http"
+	"path/filepath"
 )
 
 // Image contains a byte array of the image data and its MIME type.
@@ -45,6 +47,19 @@ func NewImageFromHTTPResponse(httpResponse *http.Response) (*Image, error) {
 	return &Image{
 		Bytes:    imageBytes,
 		MimeType: httpResponse.Header.Get("Content-Type"),
+	}, nil
+}
+
+// Returns a pointer to a new Image created from a file.
+func NewImageFromPath(filename string) (*Image, error) {
+	imageBytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Image{
+		Bytes:    imageBytes,
+		MimeType: mime.TypeByExtension(filepath.Ext(filename)),
 	}, nil
 }
 
