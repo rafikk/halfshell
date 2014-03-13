@@ -1,0 +1,4 @@
+.vagrant*
+.env
+bin
+*.py[co]

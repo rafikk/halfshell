@@ -1,0 +1,111 @@
+// Copyright (c) 2014 Oyster
+//
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+//
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+//
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+// THE SOFTWARE.
+
+package halfshell
+
+import (
+	"fmt"
+	"net"
+	"net/http"
+	"os"
+	"time"
+)
+
+type Statter interface {
+	RegisterRequest(*HalfshellResponseWriter, *HalfshellRequest)
+}
+
+type statsdStatter struct {
+	conn     *net.UDPConn
+	addr     *net.UDPAddr
+	Name     string
+	Hostname string
+	Logger   *Logger
+}
+
+func NewStatterWithConfig(config *RouteConfig) Statter {
+	logger := NewLogger("stats.%s", config.Name)
+	hostname, _ := os.Hostname()
+	hostIp := os.Getenv("HOST_IP")
+	if hostIp == "" {
+		hostIp = "localhost"
+	}
+
+	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:8125", hostIp))
+	if err != nil {
+		logger.Error("Unable to resolve UDP address: %v", err)
+		return nil
+	}
+
+	conn, err := net.DialUDP("udp", nil, addr)
+	if err != nil {
+		logger.Error("Unable to create UDP connection: %v", err)
+		return nil
+	}
+
+	return &statsdStatter{
+		conn:     conn,
+		addr:     addr,
+		Name:     config.Name,
+		Hostname: hostname,
+		Logger:   logger,
+	}
+}
+
+func (s *statsdStatter) RegisterRequest(w *HalfshellResponseWriter, r *HalfshellRequest) {
+	now := time.Now()
+
+	status := "success"
+	if w.Status != http.StatusOK {
+		status = "failure"
+	}
+
+	s.count(fmt.Sprintf("http.status.%d", w.Status))
+	s.count(fmt.Sprintf("image_resized.%s", status))
+	s.count(fmt.Sprintf("image_resized_%s.%s", r.ProcessorOptions.Dimensions, status))
+
+	if status == "success" {
+		durationInMs := (now.UnixNano() - r.Timestamp.UnixNano()) / 1000000
+		s.time("image_resized", durationInMs)
+		s.time(fmt.Sprintf("image_resized_%s", r.ProcessorOptions.Dimensions), durationInMs)
+	}
+}
+
+func (s *statsdStatter) count(stat string) {
+	stat = fmt.Sprintf("%s.halfshell.%s.%s", s.Hostname, s.Name, stat)
+	s.Logger.Info("Incrementing counter: %s", stat)
+	s.send(stat, "1|c")
+}
+
+func (s *statsdStatter) time(stat string, time int64) {
+	stat = fmt.Sprintf("%s.halfshell.%s.%s", s.Hostname, s.Name, stat)
+	s.Logger.Info("Registering time: %s (%d)", stat, time)
+	s.send(stat, fmt.Sprintf("%d|ms", time))
+}
+
+func (s *statsdStatter) send(stat string, value string) {
+	data := fmt.Sprintf("%s:%s", stat, value)
+	n, err := s.conn.Write([]byte(data))
+	if err != nil {
+		s.Logger.Error("Error sending data to statsd: %v", err)
+	} else if n == 0 {
+		s.Logger.Error("No bytes were written")
+	}
+}
