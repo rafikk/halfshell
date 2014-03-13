@@ -28,56 +28,59 @@ This simple architecture has allowed us to serve images from multiple S3 buckets
 
 Halfshell uses a JSON file for configuration. An example is shown below:
 
+```json
+{
+    "server": {
+        "port": 8080,
+        "read_timeout": 5,
+        "write_timeout": 30
+    },
+    "sources": {
+        "default": {
+            "type": "s3",
+            "s3_access_key": "<S3_ACCESS_KEY>",
+            "s3_secret_key": "<S3_SECRET_KEY>"
+        },
+        "blog-post-images": {
+            "s3_bucket": "my-company-blog-post-images"
+        },
+        "profile-photos": {
+            "s3_bucket": "my-company-profile-photos"
+        }
+    },
+    "processors": {
+        "default": {
+            "image_compression_quality": 85,
+            "maintain_aspect_ratio": true,
+            "max_blur_radius_percentage": 0,
+            "max_image_height": 0,
+            "max_image_width": 1000
 
-    {
-        "server": {
-            "port": 8080,
-            "read_timeout": 5,
-            "write_timeout": 30
         },
-        "sources": {
-            "default": {
-                "type": "s3",
-                "s3_access_key": "<S3_ACCESS_KEY>",
-                "s3_secret_key": "<S3_SECRET_KEY>"
-            },
-            "blog-post-images": {
-                "s3_bucket": "my-company-blog-post-images"
-            },
-            "profile-photos": {
-                "s3_bucket": "my-company-profile-photos"
-            }
+        "profile-photos": {
+            "default_image_width": 120
+        }
+    },
+    "routes": {
+        "^/blog(?P<image_path>/.*)$": {
+            "name": "blog-post-images",
+            "source": "blog-post-images",
+            "processor": "default"
         },
-        "processors": {
-            "default": {
-                "image_compression_quality": 85,
-                "maintain_aspect_ratio": true,
-                "max_blur_radius_percentage": 0,
-                "max_image_height": 0,
-                "max_image_width": 1000
-
-            },
-            "profile-photos": {
-                "default_image_width": 120
-            }
-        },
-        "routes": {
-            "^/blog(?P<image_path>/.*)$": {
-                "name": "blog-post-images",
-                "source": "blog-post-images",
-                "processor": "default"
-            },
-            "^/users(?P<image_path>/.*)$": {
-                "name": "profile-photos",
-                "source": "profile-photos",
-                "processor": "profile-photos"
-            }
+        "^/users(?P<image_path>/.*)$": {
+            "name": "profile-photos",
+            "source": "profile-photos",
+            "processor": "profile-photos"
         }
     }
+}
+```
 
 To start the server, pass configuration file path as an argument.
 
-    $ ./bin/halfshell config.json
+```bash
+$ ./bin/halfshell config.json
+```
 
 This will start the server on port 8080, and service requests whose path begins with /users/ or /blog/, e.g.:
 
