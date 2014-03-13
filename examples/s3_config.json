@@ -6,14 +6,15 @@
     },
     "sources": {
         "default": {
-            "type": "filesystem",
-            "directory": "/tmp"
+            "type": "s3",
+            "s3_access_key": "<S3_ACCESS_KEY>",
+            "s3_secret_key": "<S3_SECRET_KEY>"
         },
         "blog-post-images": {
-            "directory": "/tmp/my-company-blog-post-images"
+            "s3_bucket": "my-company-blog-post-images"
         },
         "profile-photos": {
-            "directory": "/tmp/my-company-profile-photos"
+            "s3_bucket": "my-company-profile-photos"
         }
     },
     "processors": {
@@ -23,6 +24,7 @@
             "max_blur_radius_percentage": 0,
             "max_image_height": 0,
             "max_image_width": 1000
+
         },
         "profile-photos": {
             "default_image_width": 120
