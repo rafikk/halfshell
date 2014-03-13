@@ -25,6 +25,7 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
+	"os"
 	"path/filepath"
 )
 
@@ -51,15 +52,15 @@ func NewImageFromHTTPResponse(httpResponse *http.Response) (*Image, error) {
 }
 
 // Returns a pointer to a new Image created from a file.
-func NewImageFromPath(filename string) (*Image, error) {
-	imageBytes, err := ioutil.ReadFile(filename)
+func NewImageFromFile(file *os.File) (*Image, error) {
+	imageBytes, err := ioutil.ReadAll(file)
 	if err != nil {
 		return nil, err
 	}
 
 	return &Image{
 		Bytes:    imageBytes,
-		MimeType: mime.TypeByExtension(filepath.Ext(filename)),
+		MimeType: mime.TypeByExtension(filepath.Ext(file.Name())),
 	}, nil
 }
 
