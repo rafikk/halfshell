@@ -1,6 +1,6 @@
 # Halfshell
 
-Halfshell is a proxy server for processing images on the fly. It allows you to dynamically resize (and apply effects to) images hosted in S3 via query parameters. It supports creating “families” of images which can read from distinct S3 buckets and enable different configuration values for image processing and retrieval. See the introduction blog post here.
+Halfshell is a proxy server for processing images on the fly. It allows you to dynamically resize (and apply effects to) images hosted in S3 via query parameters. It supports creating “families” of images which can read from distinct S3 buckets and enable different configuration values for image processing and retrieval. See the [introduction blog post](http://engineering.oysterbooks.com/post/79458380259/resizing-images-on-the-fly-with-go).
 
 Current version: `0.1.0`
 
