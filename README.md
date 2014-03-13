@@ -1,8 +1,8 @@
 # Halfshell
 
-Halfshell is a proxy server for processing images on the fly. It allows you to dynamically resize (and apply effects to) images hosted in S3 via query parameters. It supports creating “families” of images which can read from distinct S3 buckets and enable different configuration values for image processing and retrieval. See the [introduction blog post](http://engineering.oysterbooks.com/post/79458380259/resizing-images-on-the-fly-with-go).
+Halfshell is a proxy server for processing images on the fly. It allows you to dynamically resize (and apply effects to) images hosted on S3 or a local filesystem via query parameters. It supports creating “families” of images which can read from distinct image sources and enable different configuration values for image processing and retrieval. See the [introduction blog post](http://engineering.oysterbooks.com/post/79458380259/resizing-images-on-the-fly-with-go).
 
-Current version: `0.1.0`
+Current version: `0.1.1`
 
 ## Architecture
 
@@ -10,7 +10,7 @@ Halfshell was architected to be extensible from the beginning. The system is com
 
 ### Sources
 
-Sources are repositories from which an “original” image can be loaded. They return an image given a path. In the initial release, a source for downloading images from S3 is included. In the future, we plan to add sources for loading images from a filesystem or arbitrary URL.
+Sources are repositories from which an “original” image can be loaded. They return an image given a path. Currently, sources for downloading images from S3 and a local filesystem are included.
 
 ### Processors
 
@@ -112,7 +112,7 @@ Values from a source named `default` will be inherited by all other sources.
 
 ##### type
 
-The type of image source. Currently only `s3`.
+The type of image source. Currently `s3` or `filesystem`.
 
 ##### s3_access_key
 
@@ -125,6 +125,10 @@ For the S3 source type, the secret key to read from S3.
 ##### s3_bucket
 
 For the S3 source type, the bucket to request images from.
+
+##### directory
+
+For the Filesystem source type, the local directory to request images from.
 
 ### Processors
 
