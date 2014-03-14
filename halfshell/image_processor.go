@@ -73,7 +73,13 @@ func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOpti
 		return nil
 	}
 
-	if !scaleModified && !blurModified {
+	err, grayscaleModified := ip.grayscaleWand(wand, request)
+	if err != nil {
+		ip.Logger.Warn("Error grayscaling image: %s", err)
+		return nil
+	}
+
+	if !scaleModified && !blurModified && !grayscaleModified {
 		processedImage.Bytes = image.Bytes
 	} else {
 		processedImage.Bytes = wand.GetImageBlob()
@@ -132,6 +138,16 @@ func (ip *imageProcessor) blurWand(wand *imagick.MagickWand, request *ImageProce
 		blurRadius := float64(wand.GetImageWidth()) * request.BlurRadius * ip.Config.MaxBlurRadiusPercentage
 		if err = wand.GaussianBlurImage(blurRadius, blurRadius); err != nil {
 			ip.Logger.Warn("ImageMagick error setting blur radius: %s", err)
+		}
+		return err, true
+	}
+	return nil, false
+}
+
+func (ip *imageProcessor) grayscaleWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (err error, modified bool) {
+	if ip.Config.Grayscale {
+		if err = wand.TransformImageColorspace(imagick.COLORSPACE_GRAY); err != nil {
+			ip.Logger.Warn("ImageMagick error grayscaling image: %s", err)
 		}
 		return err, true
 	}
