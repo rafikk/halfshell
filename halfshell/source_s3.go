@@ -67,19 +67,7 @@ func (s *S3ImageSource) GetImage(request *ImageSourceOptions) *Image {
 }
 
 func (s *S3ImageSource) signedHTTPRequestForRequest(request *ImageSourceOptions) *http.Request {
-	imageURLPathComponents := strings.Split(request.Path, "/")
-	for index, component := range imageURLPathComponents {
-		component = url.QueryEscape(component)
-		imageURLPathComponents[index] = component
-	}
-	requestURL := &url.URL{
-		Opaque: strings.Join(imageURLPathComponents, "/"),
-		Scheme: "http",
-		Host:   fmt.Sprintf("%s.s3.amazonaws.com", s.Config.S3Bucket),
-	}
-
-	httpRequest, _ := http.NewRequest("GET", requestURL.RequestURI(), nil)
-	httpRequest.URL = requestURL
+	httpRequest, _ := http.NewRequest("GET", s.imageURLForRequest(request), nil)
 	httpRequest.Header.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	s3.Sign(httpRequest, s3.Keys{
 		AccessKey: s.Config.S3AccessKey,
@@ -87,6 +75,22 @@ func (s *S3ImageSource) signedHTTPRequestForRequest(request *ImageSourceOptions)
 	})
 
 	return httpRequest
+}
+
+func (s *S3ImageSource) imageURLForRequest(request *ImageSourceOptions) string {
+	imageURLPathComponents := strings.Split(request.Path, "/")
+	for index, component := range imageURLPathComponents {
+		component = url.QueryEscape(component)
+		imageURLPathComponents[index] = component
+	}
+
+	url := &url.URL{
+		Scheme: "http",
+		Host:   fmt.Sprintf("%s.s3.amazonaws.com", s.Config.S3Bucket),
+		Path:   strings.Join(imageURLPathComponents, "/"),
+	}
+
+	return url.String()
 }
 
 func init() {
