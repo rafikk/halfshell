@@ -35,11 +35,6 @@ type FileSystemImageSource struct {
 	Logger *Logger
 }
 
-var BlankImage = &Image{
-	Bytes:    make([]byte, 0),
-	MimeType: "",
-}
-
 func NewFileSystemImageSourceWithConfig(config *SourceConfig) ImageSource {
 	source := &FileSystemImageSource{
 		Config: config,
