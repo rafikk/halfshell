@@ -73,6 +73,7 @@ type ProcessorConfig struct {
 	MaxImageHeight          uint64
 	MaxImageWidth           uint64
 	MaxBlurRadiusPercentage float64
+	Grayscale               bool
 }
 
 // Parses a JSON configuration file and returns a pointer to a new Config object.
@@ -176,6 +177,7 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		MaxImageHeight:          c.uintForKeypath("processors.%s.max_image_height", processorName),
 		MaxImageWidth:           c.uintForKeypath("processors.%s.max_image_width", processorName),
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),
+		Grayscale:               c.boolForKeypath("processors.%s.grayscale", processorName),
 	}
 }
 

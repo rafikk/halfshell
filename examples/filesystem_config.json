@@ -25,7 +25,8 @@
             "max_image_width": 1000
         },
         "profile-photos": {
-            "default_image_width": 120
+            "default_image_width": 120,
+            "grayscale": true
         }
     },
     "routes": {
