@@ -48,7 +48,7 @@ func NewFileSystemImageSourceWithConfig(config *SourceConfig) ImageSource {
 
 	baseDirectory, err := os.Open(source.Config.Directory)
 	if os.IsNotExist(err) {
-		source.Logger.Info(source.Config.Directory, " does not exit. Creating.")
+		source.Logger.Info("%s does not exit. Creating.", source.Config.Directory)
 		_ = os.MkdirAll(source.Config.Directory, 0700)
 		baseDirectory, err = os.Open(source.Config.Directory)
 	}
@@ -59,7 +59,7 @@ func NewFileSystemImageSourceWithConfig(config *SourceConfig) ImageSource {
 
 	fileInfo, err := baseDirectory.Stat()
 	if err != nil || !fileInfo.IsDir() {
-		source.Logger.Fatal("Directory ", source.Config.Directory, " not a directory", err)
+		source.Logger.Fatal("Directory %s not a directory", source.Config.Directory, err)
 	}
 
 	return source

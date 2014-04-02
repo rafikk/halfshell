@@ -31,6 +31,7 @@ type Server struct {
 	*http.Server
 	Routes []*Route
 	Logger *Logger
+	Config *ServerConfig
 }
 
 func NewServerWithConfigAndRoutes(config *ServerConfig, routes []*Route) *Server {
@@ -40,7 +41,7 @@ func NewServerWithConfigAndRoutes(config *ServerConfig, routes []*Route) *Server
 		WriteTimeout:   time.Duration(config.WriteTimeout) * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
-	server := &Server{httpServer, routes, NewLogger("server")}
+	server := &Server{httpServer, routes, NewLogger("server"), config}
 	httpServer.Handler = server
 	return server
 }
@@ -64,7 +65,9 @@ func (s *Server) ImageRequestHandler(w *HalfshellResponseWriter, r *HalfshellReq
 		return
 	}
 
-	defer func() { go r.Route.Statter.RegisterRequest(w, r) }()
+	if !s.Config.StatsdDisabled {
+		defer func() { go r.Route.Statter.RegisterRequest(w, r) }()
+	}
 
 	s.Logger.Info("Handling request for image %s with dimensions %v",
 		r.SourceOptions.Path, r.ProcessorOptions.Dimensions)

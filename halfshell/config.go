@@ -38,9 +38,10 @@ type Config struct {
 
 // ServerConfig holds the configuration settings relevant for the HTTP server.
 type ServerConfig struct {
-	Port         uint64
-	ReadTimeout  uint64
-	WriteTimeout uint64
+	Port           uint64
+	ReadTimeout    uint64
+	WriteTimeout   uint64
+	StatsdDisabled bool
 }
 
 // RouteConfig holds the configuration settings for a particular route.
@@ -73,7 +74,8 @@ type ProcessorConfig struct {
 	MaxImageHeight          uint64
 	MaxImageWidth           uint64
 	MaxBlurRadiusPercentage float64
-	Grayscale               bool
+	GrayscaleByDefault      bool
+	GrayscaleDisabled       bool
 }
 
 // Parses a JSON configuration file and returns a pointer to a new Config object.
@@ -150,9 +152,10 @@ func (c *configParser) parse() *Config {
 
 func (c *configParser) parseServerConfig() *ServerConfig {
 	return &ServerConfig{
-		Port:         c.uintForKeypath("server.port"),
-		ReadTimeout:  c.uintForKeypath("server.read_timeout"),
-		WriteTimeout: c.uintForKeypath("server.write_timeout"),
+		Port:           c.uintForKeypath("server.port"),
+		ReadTimeout:    c.uintForKeypath("server.read_timeout"),
+		WriteTimeout:   c.uintForKeypath("server.write_timeout"),
+		StatsdDisabled: c.boolForKeypath("server.disable_statsd"),
 	}
 }
 
@@ -168,7 +171,7 @@ func (c *configParser) parseSourceConfig(sourceName string) *SourceConfig {
 }
 
 func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConfig {
-	return &ProcessorConfig{
+	config := &ProcessorConfig{
 		Name: processorName,
 		ImageCompressionQuality: c.uintForKeypath("processors.%s.image_compression_quality", processorName),
 		MaintainAspectRatio:     c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),
@@ -177,8 +180,11 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		MaxImageHeight:          c.uintForKeypath("processors.%s.max_image_height", processorName),
 		MaxImageWidth:           c.uintForKeypath("processors.%s.max_image_width", processorName),
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),
-		Grayscale:               c.boolForKeypath("processors.%s.grayscale", processorName),
 	}
+
+	config.GrayscaleByDefault, config.GrayscaleDisabled = c.onOrDisabledForKeypath("processors.%s.grayscale", processorName)
+
+	return config
 }
 
 func (c *configParser) valueForKeypath(valueType reflect.Kind, keypathFormat string, v ...interface{}) interface{} {
@@ -227,4 +233,17 @@ func (c *configParser) uintForKeypath(keypathFormat string, v ...interface{}) ui
 
 func (c *configParser) boolForKeypath(keypathFormat string, v ...interface{}) bool {
 	return c.valueForKeypath(reflect.Bool, keypathFormat, v...).(bool)
+}
+
+func (c *configParser) onOrDisabledForKeypath(keypathFormat string, v ...interface{}) (bool, bool) {
+	value := c.valueForKeypath(reflect.String, keypathFormat, v...)
+	switch value.(type) {
+	case bool:
+		return value.(bool), false
+	case string:
+		if value == "disabled" {
+			return false, true
+		}
+	}
+	return false, false
 }

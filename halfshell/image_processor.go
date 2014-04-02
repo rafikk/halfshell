@@ -38,6 +38,7 @@ type ImageProcessor interface {
 type ImageProcessorOptions struct {
 	Dimensions ImageDimensions
 	BlurRadius float64
+	GrayScale  bool
 }
 
 type imageProcessor struct {
@@ -145,7 +146,7 @@ func (ip *imageProcessor) blurWand(wand *imagick.MagickWand, request *ImageProce
 }
 
 func (ip *imageProcessor) grayscaleWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (err error, modified bool) {
-	if ip.Config.Grayscale {
+	if !ip.Config.GrayscaleDisabled && (ip.Config.GrayscaleByDefault || request.GrayScale) {
 		if err = wand.TransformImageColorspace(imagick.COLORSPACE_GRAY); err != nil {
 			ip.Logger.Warn("ImageMagick error grayscaling image: %s", err)
 		}

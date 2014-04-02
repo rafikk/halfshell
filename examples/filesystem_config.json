@@ -2,7 +2,8 @@
     "server": {
         "port": 8080,
         "read_timeout": 5,
-        "write_timeout": 30
+        "write_timeout": 30,
+        "disable_statsd": true
     },
     "sources": {
         "default": {
@@ -22,8 +23,8 @@
             "maintain_aspect_ratio": true,
             "max_blur_radius_percentage": 0,
             "max_image_height": 0,
-            "max_image_width": 1000
-
+            "max_image_width": 1000,
+            "grayscale": "disabled"
         },
         "profile-photos": {
             "default_image_width": 120,
