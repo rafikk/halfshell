@@ -1,20 +1,20 @@
-FROM ubuntu
+FROM stackbrew/ubuntu:13.04
 MAINTAINER Rafik Salama <rafik@oysterbooks.com>
 
 WORKDIR /opt/go/src/github.com/oysterbooks/halfshell
 ENV GOPATH /opt/go
 
-RUN echo "deb http://archive.ubuntu.com/ubuntu precise main universe" > /etc/apt/sources.list
-RUN apt-get update
-RUN apt-get upgrade -qy
-RUN apt-get install -qy \
-    python-software-properties \
-    libmagickwand-dev \
-    git
+RUN apt-get update && apt-get install -qy software-properties-common python-software-properties
+RUN add-apt-repository ppa:gophers/go && apt-get update
 
-RUN add-apt-repository ppa:duh/golang
-RUN apt-get update
-RUN apt-get install -y golang
+RUN apt-get install -qy \
+    build-essential \
+    git \
+    wget \
+    libmagickcore-dev \
+    libmagickwand-dev \
+    imagemagick \
+    golang
 
 ADD . /opt/go/src/github.com/oysterbooks/halfshell
 RUN cd /opt/go/src/github.com/oysterbooks/halfshell && make deps && make build
