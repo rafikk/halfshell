@@ -22,9 +22,10 @@ package halfshell
 
 import (
 	"fmt"
-	"github.com/rafikk/imagick/imagick"
 	"math"
 	"strings"
+
+	"github.com/rafikk/imagick/imagick"
 )
 
 // ImageProcessor is the public interface for the image processor. It exposes a
@@ -164,7 +165,7 @@ func (ip *imageProcessor) scaleToRequestedDimensions(currentDimensions, requeste
 			// Thus means the height is the restraining dimension, so unset the
 			// width and let the height determine the dimensions.
 			return ip.scaleToRequestedDimensions(currentDimensions, ImageDimensions{0, requestedDimensions.Height}, request)
-		} else if requestedAspectRatio > imageAspectRatio {
+		} else if requestedAspectRatio < imageAspectRatio {
 			return ip.scaleToRequestedDimensions(currentDimensions, ImageDimensions{requestedDimensions.Width, 0}, request)
 		} else {
 			return requestedDimensions
