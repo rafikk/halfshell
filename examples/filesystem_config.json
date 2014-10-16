@@ -4,6 +4,10 @@
         "read_timeout": 5,
         "write_timeout": 30
     },
+    "statsd": {
+      "host": "0",
+      "port": 12345
+    },
     "sources": {
         "default": {
             "type": "filesystem",

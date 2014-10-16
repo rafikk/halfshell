@@ -4,6 +4,9 @@
         "read_timeout": 5,
         "write_timeout": 30
     },
+    "statsd": {
+      "enabled": false
+    },
     "sources": {
         "default": {
             "type": "s3",
