@@ -29,7 +29,7 @@ import (
 )
 
 type Statter interface {
-	RegisterRequest(*HalfshellResponseWriter, *HalfshellRequest)
+	RegisterRequest(*ResponseWriter, *Request)
 }
 
 type statsdStatter struct {
@@ -50,13 +50,13 @@ func NewStatterWithConfig(config *RouteConfig) Statter {
 
 	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:8125", hostIp))
 	if err != nil {
-		logger.Error("Unable to resolve UDP address: %v", err)
+		logger.Errorf("Unable to resolve UDP address: %v", err)
 		return nil
 	}
 
 	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
-		logger.Error("Unable to create UDP connection: %v", err)
+		logger.Errorf("Unable to create UDP connection: %v", err)
 		return nil
 	}
 
@@ -69,7 +69,7 @@ func NewStatterWithConfig(config *RouteConfig) Statter {
 	}
 }
 
-func (s *statsdStatter) RegisterRequest(w *HalfshellResponseWriter, r *HalfshellRequest) {
+func (s *statsdStatter) RegisterRequest(w *ResponseWriter, r *Request) {
 	now := time.Now()
 
 	status := "success"
@@ -90,13 +90,13 @@ func (s *statsdStatter) RegisterRequest(w *HalfshellResponseWriter, r *Halfshell
 
 func (s *statsdStatter) count(stat string) {
 	stat = fmt.Sprintf("%s.halfshell.%s.%s", s.Hostname, s.Name, stat)
-	s.Logger.Info("Incrementing counter: %s", stat)
+	s.Logger.Infof("Incrementing counter: %s", stat)
 	s.send(stat, "1|c")
 }
 
 func (s *statsdStatter) time(stat string, time int64) {
 	stat = fmt.Sprintf("%s.halfshell.%s.%s", s.Hostname, s.Name, stat)
-	s.Logger.Info("Registering time: %s (%d)", stat, time)
+	s.Logger.Infof("Registering time: %s (%d)", stat, time)
 	s.send(stat, fmt.Sprintf("%d|ms", time))
 }
 
@@ -104,8 +104,8 @@ func (s *statsdStatter) send(stat string, value string) {
 	data := fmt.Sprintf("%s:%s", stat, value)
 	n, err := s.conn.Write([]byte(data))
 	if err != nil {
-		s.Logger.Error("Error sending data to statsd: %v", err)
+		s.Logger.Errorf("Error sending data to statsd: %v", err)
 	} else if n == 0 {
-		s.Logger.Error("No bytes were written")
+		s.Logger.Errorf("No bytes were written")
 	}
 }

@@ -39,8 +39,8 @@ type Route struct {
 	Statter        Statter
 }
 
-// Returns a pointer to a new Route instance created using the provided
-// configuration settings.
+// NewRouteWithConfig returns a pointer to a new Route instance created using
+// the provided configuration settings.
 func NewRouteWithConfig(config *RouteConfig) *Route {
 	return &Route{
 		Name:           config.Name,
@@ -52,13 +52,14 @@ func NewRouteWithConfig(config *RouteConfig) *Route {
 	}
 }
 
-// Accepts an HTTP request and returns a bool indicating whether the route
-// should handle the request.
+// ShouldHandleRequest accepts an HTTP request and returns a bool indicating
+// whether the route should handle the request.
 func (p *Route) ShouldHandleRequest(r *http.Request) bool {
 	return p.Pattern.MatchString(r.URL.Path)
 }
 
-// Parses the source and processor options from the request.
+// SourceAndProcessorOptionsForRequest parses the source and processor options
+// from the request.
 func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 	*ImageSourceOptions, *ImageProcessorOptions) {
 

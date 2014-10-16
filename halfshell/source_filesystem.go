@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	IMAGE_SOURCE_TYPE_FILESYSTEM ImageSourceType = "filesystem"
+	ImageSourceTypeFilesystem ImageSourceType = "filesystem"
 )
 
 type FileSystemImageSource struct {
@@ -43,7 +43,7 @@ func NewFileSystemImageSourceWithConfig(config *SourceConfig) ImageSource {
 
 	baseDirectory, err := os.Open(source.Config.Directory)
 	if os.IsNotExist(err) {
-		source.Logger.Info(source.Config.Directory, " does not exit. Creating.")
+		source.Logger.Infof(source.Config.Directory, " does not exit. Creating.")
 		_ = os.MkdirAll(source.Config.Directory, 0700)
 		baseDirectory, err = os.Open(source.Config.Directory)
 	}
@@ -65,13 +65,13 @@ func (s *FileSystemImageSource) GetImage(request *ImageSourceOptions) *Image {
 
 	file, err := os.Open(fileName)
 	if err != nil {
-		s.Logger.Warn("Failed to open file: %v", err)
+		s.Logger.Warnf("Failed to open file: %v", err)
 		return nil
 	}
 
 	image, err := NewImageFromFile(file)
 	if err != nil {
-		s.Logger.Warn("Failed to read image: %v", err)
+		s.Logger.Warnf("Failed to read image: %v", err)
 		return nil
 	}
 	return image
@@ -84,5 +84,5 @@ func (s *FileSystemImageSource) fileNameForRequest(request *ImageSourceOptions) 
 }
 
 func init() {
-	RegisterSource(IMAGE_SOURCE_TYPE_FILESYSTEM, NewFileSystemImageSourceWithConfig)
+	RegisterSource(ImageSourceTypeFilesystem, NewFileSystemImageSourceWithConfig)
 }
