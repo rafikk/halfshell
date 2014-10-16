@@ -208,7 +208,6 @@ func (c *configParser) valueForKeypath(valueType reflect.Kind, keypathFormat str
 	default:
 		panic("Unreachable")
 	}
-	return value
 }
 
 func (c *configParser) stringForKeypath(keypathFormat string, v ...interface{}) string {
