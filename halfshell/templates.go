@@ -32,6 +32,10 @@ Server settings:
   Read Timeout: {{.Config.ServerConfig.ReadTimeout}}
   Write Timeout: {{.Config.ServerConfig.WriteTimeout}}
 
+StatsD settings:
+  Host: {{.Config.StatterConfig.Host}}
+  Port: {{.Config.StatterConfig.Port}}
+
 Routes:
 {{ range $index, $route := .Routes }}  {{ $route.Name }}:
     Pattern: {{ $route.Pattern }}

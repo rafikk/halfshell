@@ -32,8 +32,9 @@ import (
 // Config is the primary configuration of Halfshell. It contains the server
 // configuration as well as a list of route configurations.
 type Config struct {
-	ServerConfig *ServerConfig
-	RouteConfigs []*RouteConfig
+	ServerConfig  *ServerConfig
+	StatterConfig *StatterConfig
+	RouteConfigs  []*RouteConfig
 }
 
 // ServerConfig holds the configuration settings relevant for the HTTP server.
@@ -75,7 +76,14 @@ type ProcessorConfig struct {
 	MaxBlurRadiusPercentage float64
 }
 
-// Parses a JSON configuration file and returns a pointer to a new Config object.
+// StatterConfig holds configuration data for StatsD
+type StatterConfig struct {
+	Host string
+	Port uint64
+}
+
+// NewConfigFromFile parses a JSON configuration file and returns a pointer to
+// a new Config object.
 func NewConfigFromFile(filepath string) *Config {
 	parser := newConfigParser(filepath)
 	config := parser.parse()
@@ -100,7 +108,11 @@ func newConfigParser(filepath string) *configParser {
 }
 
 func (c *configParser) parse() *Config {
-	config := Config{ServerConfig: c.parseServerConfig()}
+	config := Config{
+		ServerConfig:  c.parseServerConfig(),
+		StatterConfig: c.parseStatterConfig(),
+	}
+
 	sourceConfigsByName := make(map[string]*SourceConfig)
 	processorConfigsByName := make(map[string]*ProcessorConfig)
 
@@ -153,6 +165,27 @@ func (c *configParser) parseServerConfig() *ServerConfig {
 		ReadTimeout:  c.uintForKeypath("server.read_timeout"),
 		WriteTimeout: c.uintForKeypath("server.write_timeout"),
 	}
+}
+
+func (c *configParser) parseStatterConfig() *StatterConfig {
+	var host string
+	var port uint64
+
+	statsd, ok := c.data["statsd"].(map[string]interface{})
+	if ok {
+		host, _ = statsd["host"].(string)
+		uport, _ := statsd["port"].(float64)
+		port = uint64(uport)
+	}
+
+	if host == "" {
+		host = "0"
+	}
+	if port == 0 {
+		port = 8125
+	}
+
+	return &StatterConfig{Host: host, Port: port}
 }
 
 func (c *configParser) parseSourceConfig(sourceName string) *SourceConfig {
