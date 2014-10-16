@@ -68,7 +68,7 @@ type SourceConfig struct {
 type ProcessorConfig struct {
 	Name                    string
 	ImageCompressionQuality uint64
-	MaintainAspectRatio     bool
+	DefaultCropMode         string
 	DefaultImageHeight      uint64
 	DefaultImageWidth       uint64
 	MaxImageHeight          uint64
@@ -203,7 +203,7 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 	return &ProcessorConfig{
 		Name: processorName,
 		ImageCompressionQuality: c.uintForKeypath("processors.%s.image_compression_quality", processorName),
-		MaintainAspectRatio:     c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),
+		DefaultCropMode:         c.stringForKeypath("processors.%s.default_crop_mode", processorName),
 		DefaultImageHeight:      c.uintForKeypath("processors.%s.default_image_height", processorName),
 		DefaultImageWidth:       c.uintForKeypath("processors.%s.default_image_width", processorName),
 		MaxImageHeight:          c.uintForKeypath("processors.%s.max_image_height", processorName),
