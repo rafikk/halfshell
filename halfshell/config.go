@@ -67,12 +67,15 @@ type SourceConfig struct {
 type ProcessorConfig struct {
 	Name                    string
 	ImageCompressionQuality uint64
-	MaintainAspectRatio     bool
+	DefaultCropMode         string
 	DefaultImageHeight      uint64
 	DefaultImageWidth       uint64
 	MaxImageHeight          uint64
 	MaxImageWidth           uint64
 	MaxBlurRadiusPercentage float64
+
+	// DEPRECATED
+	MaintainAspectRatio bool
 }
 
 // Parses a JSON configuration file and returns a pointer to a new Config object.
@@ -170,13 +173,22 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 	return &ProcessorConfig{
 		Name: processorName,
 		ImageCompressionQuality: c.uintForKeypath("processors.%s.image_compression_quality", processorName),
-		MaintainAspectRatio:     c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),
+		DefaultCropMode:         c.stringForKeypath("processors.%s.default_crop_mode", processorName),
 		DefaultImageHeight:      c.uintForKeypath("processors.%s.default_image_height", processorName),
 		DefaultImageWidth:       c.uintForKeypath("processors.%s.default_image_width", processorName),
 		MaxImageHeight:          c.uintForKeypath("processors.%s.max_image_height", processorName),
 		MaxImageWidth:           c.uintForKeypath("processors.%s.max_image_width", processorName),
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),
+
+		// DEPRECATED
+		MaintainAspectRatio: c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),
 	}
+
+	if config.MaintainAspectRatio {
+		config.DefaultCropMode = "fill"
+	}
+
+	return config
 }
 
 func (c *configParser) valueForKeypath(valueType reflect.Kind, keypathFormat string, v ...interface{}) interface{} {
