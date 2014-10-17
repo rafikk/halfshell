@@ -35,8 +35,9 @@ import (
 // TODO: See if we can use the std library's Image type without incurring
 // the hit of extra copying.
 type Image struct {
-	Bytes    []byte
-	MimeType string
+	Bytes     []byte
+	MimeType  string
+	Signature string
 }
 
 // NewImageFromHTTPResponse returns a pointer to a new Image created from an

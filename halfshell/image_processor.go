@@ -107,6 +107,7 @@ func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOpti
 		processedImage.Bytes = wand.GetImageBlob()
 	}
 
+	processedImage.Signature = wand.GetImageSignature()
 	processedImage.MimeType = fmt.Sprintf("image/%s", strings.ToLower(wand.GetImageFormat()))
 
 	return &processedImage
