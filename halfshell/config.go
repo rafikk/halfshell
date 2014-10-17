@@ -76,6 +76,9 @@ type ProcessorConfig struct {
 	MaxImageHeight          uint64
 	MaxImageWidth           uint64
 	MaxBlurRadiusPercentage float64
+
+	// DEPRECATED
+	MaintainAspectRatio bool
 }
 
 // StatterConfig holds configuration data for StatsD
@@ -202,7 +205,7 @@ func (c *configParser) parseSourceConfig(sourceName string) *SourceConfig {
 }
 
 func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConfig {
-	return &ProcessorConfig{
+	config := &ProcessorConfig{
 		Name:                    processorName,
 		AutoOrient:              c.boolForKeypath("processors.%s.auto_orient", processorName),
 		ImageCompressionQuality: c.uintForKeypath("processors.%s.image_compression_quality", processorName),
@@ -213,7 +216,16 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		MaxImageHeight:          c.uintForKeypath("processors.%s.max_image_height", processorName),
 		MaxImageWidth:           c.uintForKeypath("processors.%s.max_image_width", processorName),
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),
+
+		// DEPRECATED
+		MaintainAspectRatio: c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),
 	}
+
+	if config.MaintainAspectRatio {
+		config.DefaultCropMode = "fill"
+	}
+
+	return config
 }
 
 func (c *configParser) valueForKeypath(valueType reflect.Kind, keypathFormat string, v ...interface{}) interface{} {

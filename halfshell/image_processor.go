@@ -65,13 +65,13 @@ func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOpti
 	wand := imagick.NewMagickWand()
 	defer wand.Destroy()
 
-	wand.ReadImageBlob(image.Bytes)
-
 	var orientModified bool
 	var scaleModified bool
 	var blurModified bool
 	var radiusModified bool
 	var err error
+
+	wand.ReadImageBlob(image.Bytes)
 
 	if ip.Config.AutoOrient {
 		orientModified, err = ip.orientWand(wand, request)
