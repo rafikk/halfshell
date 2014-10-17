@@ -38,9 +38,11 @@ type ImageProcessor interface {
 // ImageProcessorOptions specify the request parameters for the processing
 // operation.
 type ImageProcessorOptions struct {
-	Dimensions ImageDimensions
-	BlurRadius float64
-	CropMode   string
+	Dimensions   ImageDimensions
+	BlurRadius   float64
+	CropMode     string
+	BorderRadius uint64
+	BGColor      string
 }
 
 type imageProcessor struct {
@@ -77,7 +79,13 @@ func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOpti
 		return nil
 	}
 
-	if !scaleModified && !blurModified {
+	radiusModified, err := ip.radiusWand(wand, request)
+	if err != nil {
+		ip.Logger.Warnf("Error applying radius: %s", err)
+		return nil
+	}
+
+	if !scaleModified && !blurModified && !radiusModified {
 		processedImage.Bytes = image.Bytes
 	} else {
 		processedImage.Bytes = wand.GetImageBlob()
@@ -148,6 +156,62 @@ func (ip *imageProcessor) blurWand(wand *imagick.MagickWand, request *ImageProce
 		return true, err
 	}
 	return false, nil
+}
+
+func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (modified bool, err error) {
+	radiusInt := util.FirstUInt(request.BorderRadius, ip.Config.DefaultBorderRadius, 0)
+	if radiusInt == 0 {
+		return
+	}
+	radius := float64(radiusInt)
+
+	bgColor := util.FirstString(request.BGColor, ip.Config.DefaultBGColor, "white")
+
+	widthI := wand.GetImageWidth()
+	heightI := wand.GetImageHeight()
+	widthF := float64(widthI)
+	heightF := float64(heightI)
+
+	canvas := imagick.NewMagickWand()
+	defer canvas.Destroy()
+
+	transparent := imagick.NewPixelWand()
+	defer transparent.Destroy()
+
+	bg := imagick.NewPixelWand()
+	defer bg.Destroy()
+
+	mask := imagick.NewDrawingWand()
+	defer mask.Destroy()
+
+	border := imagick.NewDrawingWand()
+	defer border.Destroy()
+
+	transparent.SetColor("none")
+	if !bg.SetColor(bgColor) {
+		bg.SetColor("bg")
+	}
+
+	canvas.NewImage(widthI, heightI, transparent)
+
+	mask.SetFillColor(bg)
+	mask.RoundRectangle(0, 0, widthF, heightF, radius, radius)
+	canvas.DrawImage(mask)
+
+	canvas.CompositeImage(wand, imagick.COMPOSITE_OP_SRC_IN, 0, 0)
+	canvas.OpaquePaintImage(transparent, bg, 0, false)
+
+	border.SetFillColor(transparent)
+	border.SetStrokeColor(bg)
+	border.SetStrokeWidth(2)
+	border.RoundRectangle(0, 0, widthF, heightF, radius, radius)
+	canvas.DrawImage(border)
+
+	canvas.SetImageFormat(wand.GetImageFormat())
+
+	err = wand.SetImage(canvas)
+	modified = true
+	return
 }
 
 func (ip *imageProcessor) getScaledDimensions(currentDimensions ImageDimensions, request *ImageProcessorOptions) ImageDimensions {
