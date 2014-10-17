@@ -73,6 +73,7 @@ type ProcessorConfig struct {
 	DefaultBorderRadius     uint64
 	DefaultImageHeight      uint64
 	DefaultImageWidth       uint64
+	DefaultBGColor          string
 	MaxImageHeight          uint64
 	MaxImageWidth           uint64
 	MaxBlurRadiusPercentage float64
@@ -213,6 +214,7 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		DefaultBorderRadius:     c.uintForKeypath("processors.%s.default_border_radius", processorName),
 		DefaultImageHeight:      c.uintForKeypath("processors.%s.default_image_height", processorName),
 		DefaultImageWidth:       c.uintForKeypath("processors.%s.default_image_width", processorName),
+		DefaultBGColor:          c.stringForKeypath("processors.%s.default_bg_color", processorName),
 		MaxImageHeight:          c.uintForKeypath("processors.%s.max_image_height", processorName),
 		MaxImageWidth:           c.uintForKeypath("processors.%s.max_image_width", processorName),
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),

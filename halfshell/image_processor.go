@@ -42,6 +42,7 @@ type ImageProcessorOptions struct {
 	BlurRadius   float64
 	CropMode     string
 	BorderRadius uint64
+	BGColor      string
 }
 
 type imageProcessor struct {
@@ -179,6 +180,8 @@ func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImagePro
 	}
 	radius := float64(radiusInt)
 
+	bgColor := util.FirstString(request.BGColor, ip.Config.DefaultBGColor, "white")
+
 	widthI := wand.GetImageWidth()
 	heightI := wand.GetImageHeight()
 	widthF := float64(widthI)
@@ -190,8 +193,8 @@ func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImagePro
 	transparent := imagick.NewPixelWand()
 	defer transparent.Destroy()
 
-	white := imagick.NewPixelWand()
-	defer white.Destroy()
+	bg := imagick.NewPixelWand()
+	defer bg.Destroy()
 
 	mask := imagick.NewDrawingWand()
 	defer mask.Destroy()
@@ -200,19 +203,21 @@ func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImagePro
 	defer border.Destroy()
 
 	transparent.SetColor("none")
-	white.SetColor("white")
+	if !bg.SetColor(bgColor) {
+		bg.SetColor("bg")
+	}
 
 	canvas.NewImage(widthI, heightI, transparent)
 
-	mask.SetFillColor(white)
+	mask.SetFillColor(bg)
 	mask.RoundRectangle(2, 2, widthF, heightF, radius, radius)
 	canvas.DrawImage(mask)
 
 	canvas.CompositeImage(wand, imagick.COMPOSITE_OP_SRC_IN, 0, 0)
-	canvas.OpaquePaintImage(transparent, white, 0, false)
+	canvas.OpaquePaintImage(transparent, bg, 0, false)
 
 	border.SetFillColor(transparent)
-	border.SetStrokeColor(white)
+	border.SetStrokeColor(bg)
 	border.SetStrokeWidth(1)
 	border.RoundRectangle(2, 2, widthF, heightF, radius, radius)
 	canvas.DrawImage(border)

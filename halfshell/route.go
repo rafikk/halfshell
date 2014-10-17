@@ -71,11 +71,13 @@ func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 	blurRadius, _ := strconv.ParseFloat(r.FormValue("blur"), 64)
 	borderRadius, _ := strconv.ParseUint(r.FormValue("border_radius"), 10, 32)
 	cropMode := r.FormValue("crop_mode")
+	bgColor := r.FormValue("bg_color")
 
 	return &ImageSourceOptions{Path: path}, &ImageProcessorOptions{
 		Dimensions:   ImageDimensions{width, height},
 		BlurRadius:   blurRadius,
 		BorderRadius: borderRadius,
 		CropMode:     cropMode,
+		BGColor:      bgColor,
 	}
 }
