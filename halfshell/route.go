@@ -72,6 +72,7 @@ func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 	borderRadius, _ := strconv.ParseUint(r.FormValue("border_radius"), 10, 32)
 	cropMode := r.FormValue("crop_mode")
 	bgColor := r.FormValue("bg_color")
+	focalpoint := r.FormValue("focalpoint")
 
 	return &ImageSourceOptions{Path: path}, &ImageProcessorOptions{
 		Dimensions:   ImageDimensions{width, height},
@@ -79,5 +80,6 @@ func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 		BorderRadius: borderRadius,
 		CropMode:     cropMode,
 		BGColor:      bgColor,
+		Focalpoint:   NewFocalpoint(focalpoint),
 	}
 }

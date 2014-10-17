@@ -43,6 +43,7 @@ type ImageProcessorOptions struct {
 	CropMode     string
 	BorderRadius uint64
 	BGColor      string
+	Focalpoint   Focalpoint
 }
 
 type imageProcessor struct {
@@ -126,7 +127,7 @@ func (ip *imageProcessor) scaleWand(wand *imagick.MagickWand, request *ImageProc
 	}
 
 	if request.CropMode == "fill" {
-		if err = ip.cropImage(newDimensions, request.Dimensions, wand); err != nil {
+		if err = ip.cropImage(wand, newDimensions, request.Dimensions, request.Focalpoint); err != nil {
 			ip.Logger.Warnf("ImageMagick error cropping image: %s", err)
 			return true, err
 		}
@@ -346,13 +347,19 @@ func (ip *imageProcessor) clampDimensionsToMaxima(dimensions ImageDimensions, re
 	return dimensions
 }
 
-func (ip *imageProcessor) cropImage(currentDimensions ImageDimensions, requestedDimensions ImageDimensions, wand *imagick.MagickWand) (err error) {
-	err = wand.CropImage(
-		uint(requestedDimensions.Width),
-		uint(requestedDimensions.Height),
-		int((currentDimensions.Width-requestedDimensions.Width)/2),
-		int((currentDimensions.Height-requestedDimensions.Height)/2),
-	)
+func (ip *imageProcessor) cropImage(wand *imagick.MagickWand, cd ImageDimensions, rd ImageDimensions, fp Focalpoint) (err error) {
+	xm := float64(rd.Width) / 2.0 / float64(cd.Width)
+	ym := float64(rd.Height) / 2.0 / float64(cd.Height)
+	xo := math.Min(math.Max(fp.X, ym), 1-xm)
+	yo := math.Min(math.Max(fp.Y, ym), 1-ym)
+
+	w := uint(rd.Width)
+	h := uint(rd.Height)
+
+	x := int(float64(cd.Width-rd.Width) / 2 * xo)
+	y := int(float64(cd.Height-rd.Height) / 2 * yo)
+
+	err = wand.CropImage(w, h, x, y)
 	return
 }
 
