@@ -69,6 +69,7 @@ type ProcessorConfig struct {
 	Name                    string
 	ImageCompressionQuality uint64
 	DefaultCropMode         string
+	DefaultBorderRadius     uint64
 	DefaultImageHeight      uint64
 	DefaultImageWidth       uint64
 	MaxImageHeight          uint64
@@ -204,6 +205,7 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		Name: processorName,
 		ImageCompressionQuality: c.uintForKeypath("processors.%s.image_compression_quality", processorName),
 		DefaultCropMode:         c.stringForKeypath("processors.%s.default_crop_mode", processorName),
+		DefaultBorderRadius:     c.uintForKeypath("processors.%s.default_border_radius", processorName),
 		DefaultImageHeight:      c.uintForKeypath("processors.%s.default_image_height", processorName),
 		DefaultImageWidth:       c.uintForKeypath("processors.%s.default_image_width", processorName),
 		MaxImageHeight:          c.uintForKeypath("processors.%s.max_image_height", processorName),

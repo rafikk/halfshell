@@ -38,9 +38,10 @@ type ImageProcessor interface {
 // ImageProcessorOptions specify the request parameters for the processing
 // operation.
 type ImageProcessorOptions struct {
-	Dimensions ImageDimensions
-	BlurRadius float64
-	CropMode   string
+	Dimensions   ImageDimensions
+	BlurRadius   float64
+	CropMode     string
+	BorderRadius uint64
 }
 
 type imageProcessor struct {
@@ -77,7 +78,13 @@ func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOpti
 		return nil
 	}
 
-	if !scaleModified && !blurModified {
+	radiusModified, err := ip.radiusWand(wand, request)
+	if err != nil {
+		ip.Logger.Warnf("Error applying radius: %s", err)
+		return nil
+	}
+
+	if !scaleModified && !blurModified && !radiusModified {
 		processedImage.Bytes = image.Bytes
 	} else {
 		processedImage.Bytes = wand.GetImageBlob()
@@ -148,6 +155,48 @@ func (ip *imageProcessor) blurWand(wand *imagick.MagickWand, request *ImageProce
 		return true, err
 	}
 	return false, nil
+}
+
+func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (modified bool, err error) {
+	radiusInt := util.FirstUInt(request.BorderRadius, ip.Config.DefaultBorderRadius, 0)
+	if radiusInt == 0 {
+		return
+	}
+	radius := float64(radiusInt)
+
+	width := wand.GetImageWidth()
+	height := wand.GetImageHeight()
+
+	canvas := imagick.NewMagickWand()
+	defer canvas.Destroy()
+
+	transparent := imagick.NewPixelWand()
+	defer transparent.Destroy()
+
+	white := imagick.NewPixelWand()
+	defer white.Destroy()
+
+	mask := imagick.NewDrawingWand()
+	defer mask.Destroy()
+
+	transparent.SetColor("none")
+	white.SetColor("white")
+
+	canvas.NewImage(width, height, transparent)
+	canvas.SetAntialias(true)
+
+	mask.SetFillColor(white)
+	mask.RoundRectangle(0, 0, float64(width), float64(height), radius, radius)
+	canvas.DrawImage(mask)
+
+	canvas.CompositeImage(wand, imagick.COMPOSITE_OP_SRC_IN, 0, 0)
+	canvas.OpaquePaintImage(transparent, white, 0, false)
+
+	canvas.SetImageFormat(wand.GetImageFormat())
+
+	err = wand.SetImage(canvas)
+	modified = true
+	return
 }
 
 func (ip *imageProcessor) getScaledDimensions(currentDimensions ImageDimensions, request *ImageProcessorOptions) ImageDimensions {

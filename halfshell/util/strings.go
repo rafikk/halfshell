@@ -8,3 +8,12 @@ func FirstString(str ...string) (s string) {
 	}
 	return s
 }
+
+func FirstUInt(ints ...uint64) (n uint64) {
+	for _, n := range ints {
+		if n > 0 {
+			return n
+		}
+	}
+	return n
+}
