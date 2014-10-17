@@ -164,8 +164,10 @@ func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImagePro
 	}
 	radius := float64(radiusInt)
 
-	width := wand.GetImageWidth()
-	height := wand.GetImageHeight()
+	widthI := wand.GetImageWidth()
+	heightI := wand.GetImageHeight()
+	widthF := float64(widthI)
+	heightF := float64(heightI)
 
 	canvas := imagick.NewMagickWand()
 	defer canvas.Destroy()
@@ -179,18 +181,26 @@ func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImagePro
 	mask := imagick.NewDrawingWand()
 	defer mask.Destroy()
 
+	border := imagick.NewDrawingWand()
+	defer border.Destroy()
+
 	transparent.SetColor("none")
 	white.SetColor("white")
 
-	canvas.NewImage(width, height, transparent)
-	canvas.SetAntialias(true)
+	canvas.NewImage(widthI, heightI, transparent)
 
 	mask.SetFillColor(white)
-	mask.RoundRectangle(0, 0, float64(width), float64(height), radius, radius)
+	mask.RoundRectangle(2, 2, widthF, heightF, radius, radius)
 	canvas.DrawImage(mask)
 
 	canvas.CompositeImage(wand, imagick.COMPOSITE_OP_SRC_IN, 0, 0)
 	canvas.OpaquePaintImage(transparent, white, 0, false)
+
+	border.SetFillColor(transparent)
+	border.SetStrokeColor(white)
+	border.SetStrokeWidth(1)
+	border.RoundRectangle(2, 2, widthF, heightF, radius, radius)
+	canvas.DrawImage(border)
 
 	canvas.SetImageFormat(wand.GetImageFormat())
 
