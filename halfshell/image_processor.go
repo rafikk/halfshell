@@ -66,25 +66,40 @@ func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOpti
 	defer wand.Destroy()
 
 	wand.ReadImageBlob(image.Bytes)
-	scaleModified, err := ip.scaleWand(wand, request)
+
+	var orientModified bool
+	var scaleModified bool
+	var blurModified bool
+	var radiusModified bool
+	var err error
+
+	if ip.Config.AutoOrient {
+		orientModified, err = ip.orientWand(wand, request)
+		if err != nil {
+			ip.Logger.Warnf("Error orienting image: %s", err)
+			return nil
+		}
+	}
+
+	scaleModified, err = ip.scaleWand(wand, request)
 	if err != nil {
 		ip.Logger.Warnf("Error scaling image: %s", err)
 		return nil
 	}
 
-	blurModified, err := ip.blurWand(wand, request)
+	blurModified, err = ip.blurWand(wand, request)
 	if err != nil {
 		ip.Logger.Warnf("Error blurring image: %s", err)
 		return nil
 	}
 
-	radiusModified, err := ip.radiusWand(wand, request)
+	radiusModified, err = ip.radiusWand(wand, request)
 	if err != nil {
 		ip.Logger.Warnf("Error applying radius: %s", err)
 		return nil
 	}
 
-	if !scaleModified && !blurModified && !radiusModified {
+	if !scaleModified && !blurModified && !radiusModified && !orientModified {
 		processedImage.Bytes = image.Bytes
 	} else {
 		processedImage.Bytes = wand.GetImageBlob()
@@ -217,6 +232,42 @@ func (ip *imageProcessor) getScaledDimensions(currentDimensions ImageDimensions,
 
 	dimensions := ip.scaleToRequestedDimensions(currentDimensions, requestDimensions, request)
 	return ip.clampDimensionsToMaxima(dimensions, request)
+}
+
+func (ip *imageProcessor) orientWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (modified bool, err error) {
+	orientation := wand.GetImageOrientation()
+
+	switch orientation {
+	case imagick.ORIENTATION_UNDEFINED:
+	case imagick.ORIENTATION_TOP_LEFT:
+		return
+	}
+
+	transparent := imagick.NewPixelWand()
+	defer transparent.Destroy()
+	transparent.SetColor("none")
+
+	switch orientation {
+	case imagick.ORIENTATION_TOP_RIGHT:
+		err = wand.FlopImage()
+	case imagick.ORIENTATION_BOTTOM_RIGHT:
+		err = wand.RotateImage(transparent, 180)
+	case imagick.ORIENTATION_BOTTOM_LEFT:
+		err = wand.FlipImage()
+	case imagick.ORIENTATION_LEFT_TOP:
+		err = wand.TransposeImage()
+	case imagick.ORIENTATION_RIGHT_TOP:
+		err = wand.RotateImage(transparent, 90)
+	case imagick.ORIENTATION_RIGHT_BOTTOM:
+		err = wand.TransverseImage()
+		break
+	case imagick.ORIENTATION_LEFT_BOTTOM:
+		err = wand.RotateImage(transparent, 270)
+	}
+
+	wand.SetImageOrientation(imagick.ORIENTATION_TOP_LEFT)
+	modified = true
+	return
 }
 
 func (ip *imageProcessor) scaleToRequestedDimensions(currentDimensions, requestedDimensions ImageDimensions, request *ImageProcessorOptions) ImageDimensions {

@@ -67,6 +67,7 @@ type SourceConfig struct {
 // ProcessorConfig holds the configuration settings for the image processor.
 type ProcessorConfig struct {
 	Name                    string
+	AutoOrient              bool
 	ImageCompressionQuality uint64
 	DefaultCropMode         string
 	DefaultBorderRadius     uint64
@@ -202,7 +203,8 @@ func (c *configParser) parseSourceConfig(sourceName string) *SourceConfig {
 
 func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConfig {
 	return &ProcessorConfig{
-		Name: processorName,
+		Name:                    processorName,
+		AutoOrient:              c.boolForKeypath("processors.%s.auto_orient", processorName),
 		ImageCompressionQuality: c.uintForKeypath("processors.%s.image_compression_quality", processorName),
 		DefaultCropMode:         c.stringForKeypath("processors.%s.default_crop_mode", processorName),
 		DefaultBorderRadius:     c.uintForKeypath("processors.%s.default_border_radius", processorName),
