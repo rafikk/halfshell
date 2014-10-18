@@ -20,7 +20,7 @@
 
 package halfshell
 
-const STARTUP_TEMPLATE_STRING = `
+const StartupTemplateString = `
 ┬ ┬┌─┐┬  ┌─┐┌─┐┬ ┬┌─┐┬  ┬
 ├─┤├─┤│  ├┤ └─┐├─┤├┤ │  │
 ┴ ┴┴ ┴┴─┘└  └─┘┴ ┴└─┘┴─┘┴─┘
@@ -31,6 +31,10 @@ Server settings:
   Port: {{.Config.ServerConfig.Port}}
   Read Timeout: {{.Config.ServerConfig.ReadTimeout}}
   Write Timeout: {{.Config.ServerConfig.WriteTimeout}}
+
+StatsD settings:
+  Host: {{.Config.StatterConfig.Host}}
+  Port: {{.Config.StatterConfig.Port}}
 
 Routes:
 {{ range $index, $route := .Routes }}  {{ $route.Name }}:

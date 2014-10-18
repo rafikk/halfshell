@@ -46,8 +46,8 @@ func NewServerWithConfigAndRoutes(config *ServerConfig, routes []*Route) *Server
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	hw := s.NewHalfshellResponseWriter(w)
-	hr := s.NewHalfshellRequest(r)
+	hw := s.NewResponseWriter(w)
+	hr := s.NewRequest(r)
 	defer s.LogRequest(hw, hr)
 	switch {
 	case "/healthcheck" == hr.URL.Path || "/health" == hr.URL.Path:
@@ -57,7 +57,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (s *Server) ImageRequestHandler(w *HalfshellResponseWriter, r *HalfshellRequest) {
+func (s *Server) ImageRequestHandler(w *ResponseWriter, r *Request) {
 	if r.Route == nil {
 		w.WriteError(fmt.Sprintf("No route available to handle request: %v",
 			r.URL.Path), http.StatusNotFound)
@@ -66,7 +66,7 @@ func (s *Server) ImageRequestHandler(w *HalfshellResponseWriter, r *HalfshellReq
 
 	defer func() { go r.Route.Statter.RegisterRequest(w, r) }()
 
-	s.Logger.Info("Handling request for image %s with dimensions %v",
+	s.Logger.Infof("Handling request for image %s with dimensions %v",
 		r.SourceOptions.Path, r.ProcessorOptions.Dimensions)
 
 	image := r.Route.Source.GetImage(r.SourceOptions)
@@ -77,18 +77,18 @@ func (s *Server) ImageRequestHandler(w *HalfshellResponseWriter, r *HalfshellReq
 
 	processedImage := r.Route.Processor.ProcessImage(image, r.ProcessorOptions)
 	if processedImage == nil {
-		s.Logger.Warn("Error processing image data %s to dimensions: %v",
+		s.Logger.Warnf("Error processing image data %s to dimensions: %v",
 			r.ProcessorOptions.Dimensions)
 		w.WriteError("Internal Server Error", http.StatusNotFound)
 		return
 	}
 
-	s.Logger.Info("Returning resized image %s to dimensions %v",
+	s.Logger.Infof("Returning resized image %s to dimensions %v",
 		r.SourceOptions.Path, r.ProcessorOptions.Dimensions)
 	w.WriteImage(processedImage)
 }
 
-func (s *Server) LogRequest(w *HalfshellResponseWriter, r *HalfshellRequest) {
+func (s *Server) LogRequest(w *ResponseWriter, r *Request) {
 	logFormat := "%s - - [%s] \"%s %s %s\" %d %d\n"
 	host, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -98,7 +98,7 @@ func (s *Server) LogRequest(w *HalfshellResponseWriter, r *HalfshellRequest) {
 		r.Method, r.URL.RequestURI(), r.Proto, w.Status, w.Size)
 }
 
-type HalfshellRequest struct {
+type Request struct {
 	*http.Request
 	Timestamp        time.Time
 	Route            *Route
@@ -106,8 +106,8 @@ type HalfshellRequest struct {
 	ProcessorOptions *ImageProcessorOptions
 }
 
-func (s *Server) NewHalfshellRequest(r *http.Request) *HalfshellRequest {
-	request := &HalfshellRequest{r, time.Now(), nil, nil, nil}
+func (s *Server) NewRequest(r *http.Request) *Request {
+	request := &Request{r, time.Now(), nil, nil, nil}
 	for _, route := range s.Routes {
 		if route.ShouldHandleRequest(r) {
 			request.Route = route
@@ -122,48 +122,49 @@ func (s *Server) NewHalfshellRequest(r *http.Request) *HalfshellRequest {
 	return request
 }
 
-// HalfshellResponseWriter is a wrapper around http.ResponseWriter that provides
+// ResponseWriter is a wrapper around http.ResponseWriter that provides
 // access to the response status and size after they have been set.
-type HalfshellResponseWriter struct {
+type ResponseWriter struct {
 	w      http.ResponseWriter
 	Status int
 	Size   int
 }
 
-// Create a new HalfshellResponseWriter by wrapping http.ResponseWriter.
-func (s *Server) NewHalfshellResponseWriter(w http.ResponseWriter) *HalfshellResponseWriter {
-	return &HalfshellResponseWriter{w: w}
+// NewResponseWriter creates a new ResponseWriter by wrapping http.ResponseWriter.
+func (s *Server) NewResponseWriter(w http.ResponseWriter) *ResponseWriter {
+	return &ResponseWriter{w: w}
 }
 
-// Forwards to http.ResponseWriter's WriteHeader method.
-func (hw *HalfshellResponseWriter) WriteHeader(status int) {
+// WriteHeader forwards to http.ResponseWriter's WriteHeader method.
+func (hw *ResponseWriter) WriteHeader(status int) {
 	hw.Status = status
 	hw.w.WriteHeader(status)
 }
 
-// Sets the value for a response header.
-func (hw *HalfshellResponseWriter) SetHeader(name, value string) {
+// SetHeader sets the value for a response header.
+func (hw *ResponseWriter) SetHeader(name, value string) {
 	hw.w.Header().Set(name, value)
 }
 
 // Writes data the output stream.
-func (hw *HalfshellResponseWriter) Write(data []byte) (int, error) {
+func (hw *ResponseWriter) Write(data []byte) (int, error) {
 	hw.Size += len(data)
 	return hw.w.Write(data)
 }
 
-// Writes an error response.
-func (hw *HalfshellResponseWriter) WriteError(message string, status int) {
+// WriteError writes an error response.
+func (hw *ResponseWriter) WriteError(message string, status int) {
 	hw.SetHeader("Content-Type", "text/plain; charset=utf-8")
 	hw.WriteHeader(status)
 	hw.Write([]byte(message))
 }
 
-// Writes an image to the output stream and sets the appropriate headers.
-func (hw *HalfshellResponseWriter) WriteImage(image *Image) {
+// WriteImage writes an image to the output stream and sets the appropriate headers.
+func (hw *ResponseWriter) WriteImage(image *Image) {
 	hw.SetHeader("Content-Type", image.MimeType)
 	hw.SetHeader("Content-Length", fmt.Sprintf("%d", len(image.Bytes)))
 	hw.SetHeader("Cache-Control", "no-transform,public,max-age=86400,s-maxage=2592000")
+	hw.SetHeader("ETag", image.Signature)
 	hw.WriteHeader(http.StatusOK)
 	hw.Write(image.Bytes)
 }

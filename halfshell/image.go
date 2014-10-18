@@ -27,17 +27,21 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 )
 
 // Image contains a byte array of the image data and its MIME type.
 // TODO: See if we can use the std library's Image type without incurring
 // the hit of extra copying.
 type Image struct {
-	Bytes    []byte
-	MimeType string
+	Bytes     []byte
+	MimeType  string
+	Signature string
 }
 
-// Returns a pointer to a new Image created from an HTTP response object.
+// NewImageFromHTTPResponse returns a pointer to a new Image created from an
+// HTTP response object.
 func NewImageFromHTTPResponse(httpResponse *http.Response) (*Image, error) {
 	imageBytes, err := ioutil.ReadAll(httpResponse.Body)
 	defer httpResponse.Body.Close()
@@ -51,7 +55,7 @@ func NewImageFromHTTPResponse(httpResponse *http.Response) (*Image, error) {
 	}, nil
 }
 
-// Returns a pointer to a new Image created from a file.
+// NewImageFromFile returns a pointer to a new Image created from a file.
 func NewImageFromFile(file *os.File) (*Image, error) {
 	imageBytes, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -64,13 +68,38 @@ func NewImageFromFile(file *os.File) (*Image, error) {
 	}, nil
 }
 
-// Width and height of an image.
+// ImageDimensions is the width and height of an image.
 type ImageDimensions struct {
 	Width  uint64
 	Height uint64
 }
 
-// Returns the image dimension's aspect ratio.
+// Focalpoint is an x/y pair representing the location of the image subject.
+// 0.5/0.5 is the middle.
+type Focalpoint struct {
+	X float64
+	Y float64
+}
+
+// NewFocalpoint splits the given string into a Focalpoint struct. The string
+// format should be: "X,Y". For example: "0.1,0.1".
+func NewFocalpoint(s string) (fp Focalpoint) {
+	fp = Focalpoint{0.5, 0.5}
+
+	pair := strings.Split(s, ",")
+	if len(pair) != 2 {
+		return
+	}
+
+	x, _ := strconv.ParseFloat(pair[0], 64)
+	y, _ := strconv.ParseFloat(pair[1], 64)
+
+	fp.X = x
+	fp.Y = y
+	return
+}
+
+// AspectRatio returns the image dimension's aspect ratio.
 func (d ImageDimensions) AspectRatio() float64 {
 	return float64(d.Width) / float64(d.Height)
 }

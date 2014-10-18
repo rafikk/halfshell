@@ -32,8 +32,9 @@ import (
 // Config is the primary configuration of Halfshell. It contains the server
 // configuration as well as a list of route configurations.
 type Config struct {
-	ServerConfig *ServerConfig
-	RouteConfigs []*RouteConfig
+	ServerConfig  *ServerConfig
+	StatterConfig *StatterConfig
+	RouteConfigs  []*RouteConfig
 }
 
 // ServerConfig holds the configuration settings relevant for the HTTP server.
@@ -66,16 +67,29 @@ type SourceConfig struct {
 // ProcessorConfig holds the configuration settings for the image processor.
 type ProcessorConfig struct {
 	Name                    string
+	AutoOrient              bool
 	ImageCompressionQuality uint64
-	MaintainAspectRatio     bool
+	DefaultCropMode         string
+	DefaultBorderRadius     uint64
 	DefaultImageHeight      uint64
 	DefaultImageWidth       uint64
+	DefaultBGColor          string
 	MaxImageHeight          uint64
 	MaxImageWidth           uint64
 	MaxBlurRadiusPercentage float64
+
+	// DEPRECATED
+	MaintainAspectRatio bool
 }
 
-// Parses a JSON configuration file and returns a pointer to a new Config object.
+// StatterConfig holds configuration data for StatsD
+type StatterConfig struct {
+	Host string
+	Port uint64
+}
+
+// NewConfigFromFile parses a JSON configuration file and returns a pointer to
+// a new Config object.
 func NewConfigFromFile(filepath string) *Config {
 	parser := newConfigParser(filepath)
 	config := parser.parse()
@@ -100,7 +114,11 @@ func newConfigParser(filepath string) *configParser {
 }
 
 func (c *configParser) parse() *Config {
-	config := Config{ServerConfig: c.parseServerConfig()}
+	config := Config{
+		ServerConfig:  c.parseServerConfig(),
+		StatterConfig: c.parseStatterConfig(),
+	}
+
 	sourceConfigsByName := make(map[string]*SourceConfig)
 	processorConfigsByName := make(map[string]*ProcessorConfig)
 
@@ -155,6 +173,27 @@ func (c *configParser) parseServerConfig() *ServerConfig {
 	}
 }
 
+func (c *configParser) parseStatterConfig() *StatterConfig {
+	var host string
+	var port uint64
+
+	statsd, ok := c.data["statsd"].(map[string]interface{})
+	if ok {
+		host, _ = statsd["host"].(string)
+		uport, _ := statsd["port"].(float64)
+		port = uint64(uport)
+	}
+
+	if host == "" {
+		host = "0"
+	}
+	if port == 0 {
+		port = 8125
+	}
+
+	return &StatterConfig{Host: host, Port: port}
+}
+
 func (c *configParser) parseSourceConfig(sourceName string) *SourceConfig {
 	return &SourceConfig{
 		Name:        sourceName,
@@ -167,16 +206,28 @@ func (c *configParser) parseSourceConfig(sourceName string) *SourceConfig {
 }
 
 func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConfig {
-	return &ProcessorConfig{
-		Name: processorName,
+	config := &ProcessorConfig{
+		Name:                    processorName,
+		AutoOrient:              c.boolForKeypath("processors.%s.auto_orient", processorName),
 		ImageCompressionQuality: c.uintForKeypath("processors.%s.image_compression_quality", processorName),
-		MaintainAspectRatio:     c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),
+		DefaultCropMode:         c.stringForKeypath("processors.%s.default_crop_mode", processorName),
+		DefaultBorderRadius:     c.uintForKeypath("processors.%s.default_border_radius", processorName),
 		DefaultImageHeight:      c.uintForKeypath("processors.%s.default_image_height", processorName),
 		DefaultImageWidth:       c.uintForKeypath("processors.%s.default_image_width", processorName),
+		DefaultBGColor:          c.stringForKeypath("processors.%s.default_bg_color", processorName),
 		MaxImageHeight:          c.uintForKeypath("processors.%s.max_image_height", processorName),
 		MaxImageWidth:           c.uintForKeypath("processors.%s.max_image_width", processorName),
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),
+
+		// DEPRECATED
+		MaintainAspectRatio: c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),
 	}
+
+	if config.MaintainAspectRatio {
+		config.DefaultCropMode = "fill"
+	}
+
+	return config
 }
 
 func (c *configParser) valueForKeypath(valueType reflect.Kind, keypathFormat string, v ...interface{}) interface{} {
@@ -208,7 +259,6 @@ func (c *configParser) valueForKeypath(valueType reflect.Kind, keypathFormat str
 	default:
 		panic("Unreachable")
 	}
-	return value
 }
 
 func (c *configParser) stringForKeypath(keypathFormat string, v ...interface{}) string {

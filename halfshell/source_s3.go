@@ -22,16 +22,17 @@ package halfshell
 
 import (
 	"fmt"
-	"github.com/oysterbooks/s3"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/oysterbooks/s3"
 )
 
 const (
-	IMAGE_SOURCE_TYPE_S3 ImageSourceType = "s3"
+	ImageSourceTypeS3 ImageSourceType = "s3"
 )
 
 type S3ImageSource struct {
@@ -50,19 +51,19 @@ func (s *S3ImageSource) GetImage(request *ImageSourceOptions) *Image {
 	httpRequest := s.signedHTTPRequestForRequest(request)
 	httpResponse, err := http.DefaultClient.Do(httpRequest)
 	if err != nil {
-		s.Logger.Warn("Error downlading image: %v", err)
+		s.Logger.Warnf("Error downlading image: %v", err)
 		return nil
 	}
 	if httpResponse.StatusCode != 200 {
-		s.Logger.Warn("Error downlading image (url=%v)", httpRequest.URL)
+		s.Logger.Warnf("Error downlading image (url=%v)", httpRequest.URL)
 		return nil
 	}
 	image, err := NewImageFromHTTPResponse(httpResponse)
 	if err != nil {
 		responseBody, _ := ioutil.ReadAll(httpResponse.Body)
-		s.Logger.Warn("Unable to create image from response body: %v (url=%v)", string(responseBody), httpRequest.URL)
+		s.Logger.Warnf("Unable to create image from response body: %v (url=%v)", string(responseBody), httpRequest.URL)
 	}
-	s.Logger.Info("Successfully retrieved image from S3: %v", httpRequest.URL)
+	s.Logger.Infof("Successfully retrieved image from S3: %v", httpRequest.URL)
 	return image
 }
 
@@ -90,5 +91,5 @@ func (s *S3ImageSource) signedHTTPRequestForRequest(request *ImageSourceOptions)
 }
 
 func init() {
-	RegisterSource(IMAGE_SOURCE_TYPE_S3, NewS3ImageSourceWithConfig)
+	RegisterSource(ImageSourceTypeS3, NewS3ImageSourceWithConfig)
 }

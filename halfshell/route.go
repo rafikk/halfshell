@@ -39,26 +39,27 @@ type Route struct {
 	Statter        Statter
 }
 
-// Returns a pointer to a new Route instance created using the provided
-// configuration settings.
-func NewRouteWithConfig(config *RouteConfig) *Route {
+// NewRouteWithConfig returns a pointer to a new Route instance created using
+// the provided configuration settings.
+func NewRouteWithConfig(config *RouteConfig, statterConfig *StatterConfig) *Route {
 	return &Route{
 		Name:           config.Name,
 		Pattern:        config.Pattern,
 		ImagePathIndex: config.ImagePathIndex,
 		Processor:      NewImageProcessorWithConfig(config.ProcessorConfig),
 		Source:         NewImageSourceWithConfig(config.SourceConfig),
-		Statter:        NewStatterWithConfig(config),
+		Statter:        NewStatterWithConfig(config, statterConfig),
 	}
 }
 
-// Accepts an HTTP request and returns a bool indicating whether the route
-// should handle the request.
+// ShouldHandleRequest accepts an HTTP request and returns a bool indicating
+// whether the route should handle the request.
 func (p *Route) ShouldHandleRequest(r *http.Request) bool {
 	return p.Pattern.MatchString(r.URL.Path)
 }
 
-// Parses the source and processor options from the request.
+// SourceAndProcessorOptionsForRequest parses the source and processor options
+// from the request.
 func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 	*ImageSourceOptions, *ImageProcessorOptions) {
 
@@ -68,9 +69,17 @@ func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 	width, _ := strconv.ParseUint(r.FormValue("w"), 10, 32)
 	height, _ := strconv.ParseUint(r.FormValue("h"), 10, 32)
 	blurRadius, _ := strconv.ParseFloat(r.FormValue("blur"), 64)
+	borderRadius, _ := strconv.ParseUint(r.FormValue("border_radius"), 10, 32)
+	cropMode := r.FormValue("crop_mode")
+	bgColor := r.FormValue("bg_color")
+	focalpoint := r.FormValue("focalpoint")
 
 	return &ImageSourceOptions{Path: path}, &ImageProcessorOptions{
-		Dimensions: ImageDimensions{width, height},
-		BlurRadius: blurRadius,
+		Dimensions:   ImageDimensions{width, height},
+		BlurRadius:   blurRadius,
+		BorderRadius: borderRadius,
+		CropMode:     cropMode,
+		BGColor:      bgColor,
+		Focalpoint:   NewFocalpoint(focalpoint),
 	}
 }

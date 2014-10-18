@@ -21,9 +21,10 @@
 package halfshell
 
 import (
-	"github.com/rafikk/imagick/imagick"
 	"os"
 	"text/template"
+
+	"github.com/rafikk/imagick/imagick"
 )
 
 // Halfshell is the primary struct of the program. It holds onto the
@@ -36,11 +37,11 @@ type Halfshell struct {
 	Logger *Logger
 }
 
-// Create a new Halfshell instance from an instance of Config.
+// NewWithConfig creates a new Halfshell instance from an instance of Config.
 func NewWithConfig(config *Config) *Halfshell {
 	routes := make([]*Route, 0, len(config.RouteConfigs))
 	for _, routeConfig := range config.RouteConfigs {
-		routes = append(routes, NewRouteWithConfig(routeConfig))
+		routes = append(routes, NewRouteWithConfig(routeConfig, config.StatterConfig))
 	}
 
 	return &Halfshell{
@@ -52,10 +53,10 @@ func NewWithConfig(config *Config) *Halfshell {
 	}
 }
 
-// Start the Halfshell program. Performs global (de)initialization, and
+// Run starts the Halfshell program. Performs global (de)initialization, and
 // starts the HTTP server.
 func (h *Halfshell) Run() {
-	var tmpl, _ = template.New("start").Parse(STARTUP_TEMPLATE_STRING)
+	var tmpl, _ = template.New("start").Parse(StartupTemplateString)
 	_ = tmpl.Execute(os.Stdout, h)
 
 	imagick.Initialize()

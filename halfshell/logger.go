@@ -38,22 +38,22 @@ func NewLogger(nameFormat string, v ...interface{}) *Logger {
 	}
 }
 
-func (l *Logger) Log(level, format string, v ...interface{}) {
+func (l *Logger) Logf(level, format string, v ...interface{}) {
 	l.Printf("[%s] [%s] %s", level, l.Name, fmt.Sprintf(format, v...))
 }
 
-func (l *Logger) Debug(format string, v ...interface{}) {
-	l.Log("DEBUG", format, v...)
+func (l *Logger) Debugf(format string, v ...interface{}) {
+	l.Logf("DEBUG", format, v...)
 }
 
-func (l *Logger) Info(format string, v ...interface{}) {
-	l.Log("INFO", format, v...)
+func (l *Logger) Infof(format string, v ...interface{}) {
+	l.Logf("INFO", format, v...)
 }
 
-func (l *Logger) Warn(format string, v ...interface{}) {
-	l.Log("WARNING", format, v...)
+func (l *Logger) Warnf(format string, v ...interface{}) {
+	l.Logf("WARNING", format, v...)
 }
 
-func (l *Logger) Error(format string, v ...interface{}) {
-	l.Log("ERROR", format, v...)
+func (l *Logger) Errorf(format string, v ...interface{}) {
+	l.Logf("ERROR", format, v...)
 }
