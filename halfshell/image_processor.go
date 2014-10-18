@@ -212,7 +212,7 @@ func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImagePro
 	canvas.NewImage(widthI, heightI, transparent)
 
 	mask.SetFillColor(bg)
-	mask.RoundRectangle(2, 2, widthF, heightF, radius, radius)
+	mask.RoundRectangle(0, 0, widthF, heightF, radius, radius)
 	canvas.DrawImage(mask)
 
 	canvas.CompositeImage(wand, imagick.COMPOSITE_OP_SRC_IN, 0, 0)
@@ -220,8 +220,8 @@ func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImagePro
 
 	border.SetFillColor(transparent)
 	border.SetStrokeColor(bg)
-	border.SetStrokeWidth(1)
-	border.RoundRectangle(2, 2, widthF, heightF, radius, radius)
+	border.SetStrokeWidth(2)
+	border.RoundRectangle(0, 0, widthF, heightF, radius, radius)
 	canvas.DrawImage(border)
 
 	canvas.SetImageFormat(wand.GetImageFormat())
