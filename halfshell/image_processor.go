@@ -348,17 +348,16 @@ func (ip *imageProcessor) clampDimensionsToMaxima(dimensions ImageDimensions, re
 	return dimensions
 }
 
-func (ip *imageProcessor) cropImage(wand *imagick.MagickWand, cd ImageDimensions, rd ImageDimensions, fp Focalpoint) (err error) {
-	xm := float64(rd.Width) / 2.0 / float64(cd.Width)
-	ym := float64(rd.Height) / 2.0 / float64(cd.Height)
-	xo := math.Min(math.Max(fp.X, ym), 1-xm)
-	yo := math.Min(math.Max(fp.Y, ym), 1-ym)
+func (ip *imageProcessor) cropImage(wand *imagick.MagickWand, id ImageDimensions, rd ImageDimensions, fp Focalpoint) (err error) {
+	xo := fp.X
+	yo := fp.Y
+	xc := float64(id.Width)*xo - float64(rd.Width)*xo
+	yc := float64(id.Height)*yo - float64(rd.Height)*yo
 
 	w := uint(rd.Width)
 	h := uint(rd.Height)
-
-	x := int(float64(cd.Width-rd.Width) / 2 * xo)
-	y := int(float64(cd.Height-rd.Height) / 2 * yo)
+	x := int(xc)
+	y := int(yc)
 
 	err = wand.CropImage(w, h, x, y)
 	return
