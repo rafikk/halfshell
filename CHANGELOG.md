@@ -4,8 +4,9 @@
 
 ### Features:
 
-- StatsD reporting can be disabled
-- StatsD host and port can be customized using configuration file
+- Allowed disabling of StatsD reporting
+- Allowed customizing StatsD host and port
+- Added ETag headers
 
 ### Maintenance:
 
