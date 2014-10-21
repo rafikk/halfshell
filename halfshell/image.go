@@ -37,7 +37,8 @@ type Image struct {
 	MimeType string
 }
 
-// Returns a pointer to a new Image created from an HTTP response object.
+// NewImageFromHTTPResponse returns a pointer to a new Image created from an
+// HTTP response object.
 func NewImageFromHTTPResponse(httpResponse *http.Response) (*Image, error) {
 	imageBytes, err := ioutil.ReadAll(httpResponse.Body)
 	defer httpResponse.Body.Close()
@@ -51,7 +52,7 @@ func NewImageFromHTTPResponse(httpResponse *http.Response) (*Image, error) {
 	}, nil
 }
 
-// Returns a pointer to a new Image created from a file.
+// NewImageFromFile returns a pointer to a new Image created from a file.
 func NewImageFromFile(file *os.File) (*Image, error) {
 	imageBytes, err := ioutil.ReadAll(file)
 	if err != nil {
@@ -64,13 +65,13 @@ func NewImageFromFile(file *os.File) (*Image, error) {
 	}, nil
 }
 
-// Width and height of an image.
+// ImageDimensions is the width and height of an image.
 type ImageDimensions struct {
 	Width  uint64
 	Height uint64
 }
 
-// Returns the image dimension's aspect ratio.
+// AspectRatio returns the image dimension's aspect ratio.
 func (d ImageDimensions) AspectRatio() float64 {
 	return float64(d.Width) / float64(d.Height)
 }

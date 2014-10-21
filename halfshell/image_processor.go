@@ -46,7 +46,8 @@ type imageProcessor struct {
 	Logger *Logger
 }
 
-// Creates a new ImageProcessor instance using configuration settings.
+// NewImageProcessorWithConfig creates a new ImageProcessor instance using
+// configuration settings.
 func NewImageProcessorWithConfig(config *ProcessorConfig) ImageProcessor {
 	return &imageProcessor{
 		Config: config,
@@ -62,15 +63,15 @@ func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOpti
 	defer wand.Destroy()
 
 	wand.ReadImageBlob(image.Bytes)
-	err, scaleModified := ip.scaleWand(wand, request)
+	scaleModified, err := ip.scaleWand(wand, request)
 	if err != nil {
-		ip.Logger.Warn("Error scaling image: %s", err)
+		ip.Logger.Warnf("Error scaling image: %s", err)
 		return nil
 	}
 
-	err, blurModified := ip.blurWand(wand, request)
+	blurModified, err := ip.blurWand(wand, request)
 	if err != nil {
-		ip.Logger.Warn("Error blurring image: %s", err)
+		ip.Logger.Warnf("Error blurring image: %s", err)
 		return nil
 	}
 
@@ -85,58 +86,58 @@ func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOpti
 	return &processedImage
 }
 
-func (ip *imageProcessor) scaleWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (err error, modified bool) {
+func (ip *imageProcessor) scaleWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (modified bool, err error) {
 	currentDimensions := ImageDimensions{uint64(wand.GetImageWidth()), uint64(wand.GetImageHeight())}
 	newDimensions := ip.getScaledDimensions(currentDimensions, request)
 
 	if newDimensions == currentDimensions {
-		return nil, false
+		return false, nil
 	}
 
 	if err = wand.ResizeImage(uint(newDimensions.Width), uint(newDimensions.Height), imagick.FILTER_LANCZOS, 1); err != nil {
-		ip.Logger.Warn("ImageMagick error resizing image: %s", err)
-		return err, true
+		ip.Logger.Warnf("ImageMagick error resizing image: %s", err)
+		return true, err
 	}
 
 	if err = wand.SetImageInterpolateMethod(imagick.INTERPOLATE_PIXEL_BICUBIC); err != nil {
-		ip.Logger.Warn("ImageMagick error setting interpoliation method: %s", err)
-		return err, true
+		ip.Logger.Warnf("ImageMagick error setting interpoliation method: %s", err)
+		return true, err
 	}
 
 	if err = wand.StripImage(); err != nil {
-		ip.Logger.Warn("ImageMagick error stripping image routes and metadata")
-		return err, true
+		ip.Logger.Warnf("ImageMagick error stripping image routes and metadata")
+		return true, err
 	}
 
 	if "JPEG" == wand.GetImageFormat() {
 		if err = wand.SetImageInterlaceScheme(imagick.INTERLACE_PLANE); err != nil {
-			ip.Logger.Warn("ImageMagick error setting the image interlace scheme")
-			return err, true
+			ip.Logger.Warnf("ImageMagick error setting the image interlace scheme")
+			return true, err
 		}
 
 		if err = wand.SetImageCompression(imagick.COMPRESSION_JPEG); err != nil {
-			ip.Logger.Warn("ImageMagick error setting the image compression type")
-			return err, true
+			ip.Logger.Warnf("ImageMagick error setting the image compression type")
+			return true, err
 		}
 
 		if err = wand.SetImageCompressionQuality(uint(ip.Config.ImageCompressionQuality)); err != nil {
-			ip.Logger.Warn("sImageMagick error setting compression quality: %s", err)
-			return err, true
+			ip.Logger.Warnf("sImageMagick error setting compression quality: %s", err)
+			return true, err
 		}
 	}
 
-	return nil, true
+	return true, nil
 }
 
-func (ip *imageProcessor) blurWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (err error, modified bool) {
+func (ip *imageProcessor) blurWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (modified bool, err error) {
 	if request.BlurRadius != 0 {
 		blurRadius := float64(wand.GetImageWidth()) * request.BlurRadius * ip.Config.MaxBlurRadiusPercentage
 		if err = wand.GaussianBlurImage(blurRadius, blurRadius); err != nil {
-			ip.Logger.Warn("ImageMagick error setting blur radius: %s", err)
+			ip.Logger.Warnf("ImageMagick error setting blur radius: %s", err)
 		}
-		return err, true
+		return true, err
 	}
-	return nil, false
+	return false, nil
 }
 
 func (ip *imageProcessor) getScaledDimensions(currentDimensions ImageDimensions, request *ImageProcessorOptions) ImageDimensions {
@@ -153,7 +154,7 @@ func (ip *imageProcessor) scaleToRequestedDimensions(currentDimensions, requeste
 	imageAspectRatio := currentDimensions.AspectRatio()
 	if requestedDimensions.Width > 0 && requestedDimensions.Height > 0 {
 		requestedAspectRatio := requestedDimensions.AspectRatio()
-		ip.Logger.Info("Requested image ratio %f, image ratio %f, %v", requestedAspectRatio, imageAspectRatio, ip.Config.MaintainAspectRatio)
+		ip.Logger.Infof("Requested image ratio %f, image ratio %f, %v", requestedAspectRatio, imageAspectRatio, ip.Config.MaintainAspectRatio)
 
 		if !ip.Config.MaintainAspectRatio {
 			// If we're not asked to maintain the aspect ratio, give them what they want
@@ -198,9 +199,9 @@ func (ip *imageProcessor) clampDimensionsToMaxima(dimensions ImageDimensions, re
 }
 
 func (ip *imageProcessor) getAspectScaledHeight(aspectRatio float64, width uint64) uint64 {
-	return uint64(math.Floor((float64(width) / aspectRatio) + 0.5))
+	return uint64(math.Floor(float64(width)/aspectRatio + 0.5))
 }
 
 func (ip *imageProcessor) getAspectScaledWidth(aspectRatio float64, height uint64) uint64 {
-	return uint64(math.Floor((float64(height) * aspectRatio) + 0.5))
+	return uint64(math.Floor(float64(height)*aspectRatio + 0.5))
 }

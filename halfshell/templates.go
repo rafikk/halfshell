@@ -20,7 +20,7 @@
 
 package halfshell
 
-const STARTUP_TEMPLATE_STRING = `
+const StartupTemplateString = `
 ┬ ┬┌─┐┬  ┌─┐┌─┐┬ ┬┌─┐┬  ┬
 ├─┤├─┤│  ├┤ └─┐├─┤├┤ │  │
 ┴ ┴┴ ┴┴─┘└  └─┘┴ ┴└─┘┴─┘┴─┘
