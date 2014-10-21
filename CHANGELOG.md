@@ -2,6 +2,11 @@
 
 ## 0.1.1-dev
 
+### Features:
+
+- StatsD reporting can be disabled
+- StatsD host and port can be customized using configuration file
+
 ### Maintenance:
 
 - Go vet/lint cleanup
