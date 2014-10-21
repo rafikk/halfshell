@@ -164,6 +164,7 @@ func (hw *ResponseWriter) WriteImage(image *Image) {
 	hw.SetHeader("Content-Type", image.MimeType)
 	hw.SetHeader("Content-Length", fmt.Sprintf("%d", len(image.Bytes)))
 	hw.SetHeader("Cache-Control", "no-transform,public,max-age=86400,s-maxage=2592000")
+	hw.SetHeader("ETag", image.Signature)
 	hw.WriteHeader(http.StatusOK)
 	hw.Write(image.Bytes)
 }
