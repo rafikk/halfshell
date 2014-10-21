@@ -41,7 +41,7 @@ type Halfshell struct {
 func NewWithConfig(config *Config) *Halfshell {
 	routes := make([]*Route, 0, len(config.RouteConfigs))
 	for _, routeConfig := range config.RouteConfigs {
-		routes = append(routes, NewRouteWithConfig(routeConfig))
+		routes = append(routes, NewRouteWithConfig(routeConfig, config.StatterConfig))
 	}
 
 	return &Halfshell{

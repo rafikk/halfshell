@@ -41,14 +41,14 @@ type Route struct {
 
 // NewRouteWithConfig returns a pointer to a new Route instance created using
 // the provided configuration settings.
-func NewRouteWithConfig(config *RouteConfig) *Route {
+func NewRouteWithConfig(config *RouteConfig, statterConfig *StatterConfig) *Route {
 	return &Route{
 		Name:           config.Name,
 		Pattern:        config.Pattern,
 		ImagePathIndex: config.ImagePathIndex,
 		Processor:      NewImageProcessorWithConfig(config.ProcessorConfig),
 		Source:         NewImageSourceWithConfig(config.SourceConfig),
-		Statter:        NewStatterWithConfig(config),
+		Statter:        NewStatterWithConfig(config, statterConfig),
 	}
 }
 

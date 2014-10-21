@@ -38,17 +38,15 @@ type statsdStatter struct {
 	Name     string
 	Hostname string
 	Logger   *Logger
+	Enabled  bool
 }
 
-func NewStatterWithConfig(config *RouteConfig) Statter {
-	logger := NewLogger("stats.%s", config.Name)
+func NewStatterWithConfig(routeConfig *RouteConfig, statterConfig *StatterConfig) Statter {
+	logger := NewLogger("stats.%s", routeConfig.Name)
 	hostname, _ := os.Hostname()
-	hostIp := os.Getenv("HOST_IP")
-	if hostIp == "" {
-		hostIp = "localhost"
-	}
 
-	addr, err := net.ResolveUDPAddr("udp", fmt.Sprintf("%s:8125", hostIp))
+	addr, err := net.ResolveUDPAddr(
+		"udp", fmt.Sprintf("%s:%d", statterConfig.Host, statterConfig.Port))
 	if err != nil {
 		logger.Errorf("Unable to resolve UDP address: %v", err)
 		return nil
@@ -63,13 +61,18 @@ func NewStatterWithConfig(config *RouteConfig) Statter {
 	return &statsdStatter{
 		conn:     conn,
 		addr:     addr,
-		Name:     config.Name,
+		Name:     routeConfig.Name,
 		Hostname: hostname,
 		Logger:   logger,
+		Enabled:  statterConfig.Enabled,
 	}
 }
 
 func (s *statsdStatter) RegisterRequest(w *ResponseWriter, r *Request) {
+	if !s.Enabled {
+		return
+	}
+
 	now := time.Now()
 
 	status := "success"
