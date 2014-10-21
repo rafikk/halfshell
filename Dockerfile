@@ -1,4 +1,4 @@
-FROM stackbrew/ubuntu:13.04
+FROM ubuntu:14.04
 MAINTAINER Rafik Salama <rafik@oysterbooks.com>
 
 WORKDIR /opt/go/src/github.com/oysterbooks/halfshell
