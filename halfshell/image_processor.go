@@ -203,7 +203,11 @@ func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImagePro
 
 	border.SetFillColor(transparent)
 	border.SetStrokeColor(bg)
-	border.SetStrokeWidth(2)
+
+	// XXX: Implement optimal stroke width depending on the circle radius. See:
+	// http://www.imagemagick.org/Usage/antialiasing/
+	border.SetStrokeWidth(1.5)
+
 	border.RoundRectangle(0, 0, widthF, heightF, radius, radius)
 	canvas.DrawImage(border)
 
