@@ -25,6 +25,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/oysterbooks/halfshell/halfshell/util"
 	"github.com/rafikk/imagick/imagick"
 )
 
@@ -37,8 +38,11 @@ type ImageProcessor interface {
 // ImageProcessorOptions specify the request parameters for the processing
 // operation.
 type ImageProcessorOptions struct {
-	Dimensions ImageDimensions
-	BlurRadius float64
+	Dimensions   ImageDimensions
+	BlurRadius   float64
+	CropMode     string
+	BorderRadius uint64
+	BGColor      string
 }
 
 type imageProcessor struct {
@@ -75,7 +79,13 @@ func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOpti
 		return nil
 	}
 
-	if !scaleModified && !blurModified {
+	radiusModified, err := ip.radiusWand(wand, request)
+	if err != nil {
+		ip.Logger.Warnf("Error applying radius: %s", err)
+		return nil
+	}
+
+	if !scaleModified && !blurModified && !radiusModified {
 		processedImage.Bytes = image.Bytes
 	} else {
 		processedImage.Bytes = wand.GetImageBlob()
@@ -90,14 +100,22 @@ func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOpti
 func (ip *imageProcessor) scaleWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (modified bool, err error) {
 	currentDimensions := ImageDimensions{uint64(wand.GetImageWidth()), uint64(wand.GetImageHeight())}
 	newDimensions := ip.getScaledDimensions(currentDimensions, request)
+	requestedDimensions := request.Dimensions
 
-	if newDimensions == currentDimensions {
+	if newDimensions == currentDimensions && newDimensions == requestedDimensions {
 		return false, nil
 	}
 
 	if err = wand.ResizeImage(uint(newDimensions.Width), uint(newDimensions.Height), imagick.FILTER_LANCZOS, 1); err != nil {
 		ip.Logger.Warnf("ImageMagick error resizing image: %s", err)
 		return true, err
+	}
+
+	if request.CropMode == "fill" {
+		if err = ip.cropImage(newDimensions, request.Dimensions, wand); err != nil {
+			ip.Logger.Warnf("ImageMagick error cropping image: %s", err)
+			return true, err
+		}
 	}
 
 	if err = wand.SetImageInterpolateMethod(imagick.INTERPOLATE_PIXEL_BICUBIC); err != nil {
@@ -141,6 +159,66 @@ func (ip *imageProcessor) blurWand(wand *imagick.MagickWand, request *ImageProce
 	return false, nil
 }
 
+func (ip *imageProcessor) radiusWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (modified bool, err error) {
+	radiusInt := util.FirstUInt(request.BorderRadius, ip.Config.DefaultBorderRadius, 0)
+	if radiusInt == 0 {
+		return
+	}
+	radius := float64(radiusInt)
+
+	bgColor := util.FirstString(request.BGColor, ip.Config.DefaultBGColor, "white")
+
+	widthI := wand.GetImageWidth()
+	heightI := wand.GetImageHeight()
+	widthF := float64(widthI)
+	heightF := float64(heightI)
+
+	canvas := imagick.NewMagickWand()
+	defer canvas.Destroy()
+
+	transparent := imagick.NewPixelWand()
+	defer transparent.Destroy()
+
+	bg := imagick.NewPixelWand()
+	defer bg.Destroy()
+
+	mask := imagick.NewDrawingWand()
+	defer mask.Destroy()
+
+	border := imagick.NewDrawingWand()
+	defer border.Destroy()
+
+	transparent.SetColor("none")
+	if !bg.SetColor(bgColor) {
+		bg.SetColor("bg")
+	}
+
+	canvas.NewImage(widthI, heightI, transparent)
+
+	mask.SetFillColor(bg)
+	mask.RoundRectangle(0, 0, widthF, heightF, radius, radius)
+	canvas.DrawImage(mask)
+
+	canvas.CompositeImage(wand, imagick.COMPOSITE_OP_SRC_IN, 0, 0)
+	canvas.OpaquePaintImage(transparent, bg, 0, false)
+
+	border.SetFillColor(transparent)
+	border.SetStrokeColor(bg)
+
+	// XXX: Implement optimal stroke width depending on the circle radius. See:
+	// http://www.imagemagick.org/Usage/antialiasing/
+	border.SetStrokeWidth(1.5)
+
+	border.RoundRectangle(0, 0, widthF, heightF, radius, radius)
+	canvas.DrawImage(border)
+
+	canvas.SetImageFormat(wand.GetImageFormat())
+
+	err = wand.SetImage(canvas)
+	modified = true
+	return
+}
+
 func (ip *imageProcessor) getScaledDimensions(currentDimensions ImageDimensions, request *ImageProcessorOptions) ImageDimensions {
 	requestDimensions := request.Dimensions
 	if requestDimensions.Width == 0 && requestDimensions.Height == 0 {
@@ -152,37 +230,60 @@ func (ip *imageProcessor) getScaledDimensions(currentDimensions ImageDimensions,
 }
 
 func (ip *imageProcessor) scaleToRequestedDimensions(currentDimensions, requestedDimensions ImageDimensions, request *ImageProcessorOptions) ImageDimensions {
+	if requestedDimensions.Width == 0 && requestedDimensions.Height == 0 {
+		return currentDimensions
+	}
+
 	imageAspectRatio := currentDimensions.AspectRatio()
-	if requestedDimensions.Width > 0 && requestedDimensions.Height > 0 {
+
+	// No height was specified, thus image proportions should be retained.
+	if requestedDimensions.Width > 0 && requestedDimensions.Height == 0 {
+		height := ip.getAspectScaledHeight(imageAspectRatio, requestedDimensions.Width)
+		return ImageDimensions{requestedDimensions.Width, height}
+	}
+
+	// No width was specified, thus image proportions should be retained.
+	if requestedDimensions.Height > 0 && requestedDimensions.Width == 0 {
+		width := ip.getAspectScaledWidth(imageAspectRatio, requestedDimensions.Height)
+		return ImageDimensions{width, requestedDimensions.Height}
+	}
+
+	// The "stretch" crop mode is a NOOP, hence it's the default.
+	cropMode := util.FirstString(request.CropMode, ip.Config.DefaultCropMode, "stretch")
+	if cropMode == "stretch" {
+		return requestedDimensions
+	}
+
+	// The "fit" crop mode retains the aspect ration while at least filling the
+	// bounds requested. No cropping will occur.
+	if cropMode == "fit" {
 		requestedAspectRatio := requestedDimensions.AspectRatio()
-		ip.Logger.Infof("Requested image ratio %f, image ratio %f, %v", requestedAspectRatio, imageAspectRatio, ip.Config.MaintainAspectRatio)
-
-		if !ip.Config.MaintainAspectRatio {
-			// If we're not asked to maintain the aspect ratio, give them what they want
-			return requestedDimensions
-		}
-
 		if requestedAspectRatio > imageAspectRatio {
-			// The requested aspect ratio is wider than the image's natural ratio.
-			// Thus means the height is the restraining dimension, so unset the
-			// width and let the height determine the dimensions.
 			return ip.scaleToRequestedDimensions(currentDimensions, ImageDimensions{0, requestedDimensions.Height}, request)
 		} else if requestedAspectRatio < imageAspectRatio {
 			return ip.scaleToRequestedDimensions(currentDimensions, ImageDimensions{requestedDimensions.Width, 0}, request)
-		} else {
-			return requestedDimensions
 		}
+		return requestedDimensions
 	}
 
-	if requestedDimensions.Width > 0 {
-		return ImageDimensions{requestedDimensions.Width, ip.getAspectScaledHeight(imageAspectRatio, requestedDimensions.Width)}
+	// The "fill" crop mode will use the exact width/height and crop out the parts
+	// that bleed out of the edges.
+	//
+	// Cropping does occur (handled elsewhere). The new dimensions defined here
+	// ensure that clipping occurs on smallest edges possible. This is done by
+	// bounding to the larger of the two axes.
+	if cropMode == "fill" {
+		requestedAspectRatio := requestedDimensions.AspectRatio()
+		if requestedAspectRatio < imageAspectRatio {
+			return ip.scaleToRequestedDimensions(currentDimensions, ImageDimensions{0, requestedDimensions.Height}, request)
+		} else if requestedAspectRatio > imageAspectRatio {
+			return ip.scaleToRequestedDimensions(currentDimensions, ImageDimensions{requestedDimensions.Width, 0}, request)
+		}
+		return requestedDimensions
 	}
 
-	if requestedDimensions.Height > 0 {
-		return ImageDimensions{ip.getAspectScaledWidth(imageAspectRatio, requestedDimensions.Height), requestedDimensions.Height}
-	}
-
-	return currentDimensions
+	// Unsupported crop modes are a NOOP.
+	return requestedDimensions
 }
 
 func (ip *imageProcessor) clampDimensionsToMaxima(dimensions ImageDimensions, request *ImageProcessorOptions) ImageDimensions {
@@ -197,6 +298,16 @@ func (ip *imageProcessor) clampDimensionsToMaxima(dimensions ImageDimensions, re
 	}
 
 	return dimensions
+}
+
+func (ip *imageProcessor) cropImage(currentDimensions ImageDimensions, requestedDimensions ImageDimensions, wand *imagick.MagickWand) (err error) {
+	err = wand.CropImage(
+		uint(requestedDimensions.Width),
+		uint(requestedDimensions.Height),
+		int((currentDimensions.Width-requestedDimensions.Width)/2),
+		int((currentDimensions.Height-requestedDimensions.Height)/2),
+	)
+	return
 }
 
 func (ip *imageProcessor) getAspectScaledHeight(aspectRatio float64, width uint64) uint64 {

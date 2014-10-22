@@ -23,7 +23,7 @@
     "processors": {
         "default": {
             "image_compression_quality": 85,
-            "maintain_aspect_ratio": true,
+            "crop_mode": "fit",
             "max_blur_radius_percentage": 0,
             "max_image_height": 0,
             "max_image_width": 1000
