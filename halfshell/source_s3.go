@@ -47,24 +47,26 @@ func NewS3ImageSourceWithConfig(config *SourceConfig) ImageSource {
 	}
 }
 
-func (s *S3ImageSource) GetImage(request *ImageSourceOptions) *Image {
+func (s *S3ImageSource) GetImage(request *ImageSourceOptions) (*Image, error) {
 	httpRequest := s.signedHTTPRequestForRequest(request)
 	httpResponse, err := http.DefaultClient.Do(httpRequest)
+	defer httpResponse.Body.Close()
 	if err != nil {
 		s.Logger.Warnf("Error downlading image: %v", err)
-		return nil
+		return nil, err
 	}
 	if httpResponse.StatusCode != 200 {
 		s.Logger.Warnf("Error downlading image (url=%v)", httpRequest.URL)
-		return nil
+		return nil, err
 	}
-	image, err := NewImageFromHTTPResponse(httpResponse)
+	image, err := NewImageFromBuffer(httpResponse.Body)
 	if err != nil {
 		responseBody, _ := ioutil.ReadAll(httpResponse.Body)
 		s.Logger.Warnf("Unable to create image from response body: %v (url=%v)", string(responseBody), httpRequest.URL)
+		return nil, err
 	}
 	s.Logger.Infof("Successfully retrieved image from S3: %v", httpRequest.URL)
-	return image
+	return image, nil
 }
 
 func (s *S3ImageSource) signedHTTPRequestForRequest(request *ImageSourceOptions) *http.Request {

@@ -31,11 +31,9 @@ import (
 // ImageProcessor is the public interface for the image processor. It exposes a
 // single method to process an image with options.
 type ImageProcessor interface {
-	ProcessImage(*Image, *ImageProcessorOptions) *Image
+	ProcessImage(*Image, *ImageProcessorOptions) error
 }
 
-// ImageProcessorOptions specify the request parameters for the processing
-// operation.
 type ImageProcessorOptions struct {
 	Dimensions ImageDimensions
 	BlurRadius float64
@@ -46,8 +44,6 @@ type imageProcessor struct {
 	Logger *Logger
 }
 
-// NewImageProcessorWithConfig creates a new ImageProcessor instance using
-// configuration settings.
 func NewImageProcessorWithConfig(config *ProcessorConfig) ImageProcessor {
 	return &imageProcessor{
 		Config: config,

@@ -60,21 +60,22 @@ func NewFileSystemImageSourceWithConfig(config *SourceConfig) ImageSource {
 	return source
 }
 
-func (s *FileSystemImageSource) GetImage(request *ImageSourceOptions) *Image {
+func (s *FileSystemImageSource) GetImage(request *ImageSourceOptions) (*Image, error) {
 	fileName := s.fileNameForRequest(request)
 
 	file, err := os.Open(fileName)
 	if err != nil {
 		s.Logger.Warnf("Failed to open file: %v", err)
-		return nil
+		return nil, err
 	}
 
 	image, err := NewImageFromFile(file)
 	if err != nil {
 		s.Logger.Warnf("Failed to read image: %v", err)
-		return nil
+		return nil, err
 	}
-	return image
+
+	return image, nil
 }
 
 func (s *FileSystemImageSource) fileNameForRequest(request *ImageSourceOptions) string {
