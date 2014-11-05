@@ -68,12 +68,14 @@ type SourceConfig struct {
 type ProcessorConfig struct {
 	Name                    string
 	ImageCompressionQuality uint64
-	MaintainAspectRatio     bool
+	DefaultScaleMode        uint
 	DefaultImageHeight      uint64
 	DefaultImageWidth       uint64
-	MaxImageHeight          uint64
-	MaxImageWidth           uint64
+	MaxImageDimensions      ImageDimensions
 	MaxBlurRadiusPercentage float64
+
+	// DEPRECATED
+	MaintainAspectRatio bool
 }
 
 // StatterConfig holds configuration data for StatsD
@@ -207,16 +209,35 @@ func (c *configParser) parseSourceConfig(sourceName string) *SourceConfig {
 }
 
 func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConfig {
-	return &ProcessorConfig{
+	scaleModeName := c.stringForKeypath("processors.%s.default_scale_mode", processorName)
+	scaleMode, _ := ScaleModes[scaleModeName]
+	if scaleMode == 0 {
+		scaleMode = ScaleFill
+	}
+
+	maxDimensions := ImageDimensions{
+		Width:  uint(c.uintForKeypath("processors.%s.max_image_width", processorName)),
+		Height: uint(c.uintForKeypath("processors.%s.max_image_height", processorName)),
+	}
+
+	config := &ProcessorConfig{
 		Name: processorName,
 		ImageCompressionQuality: c.uintForKeypath("processors.%s.image_compression_quality", processorName),
-		MaintainAspectRatio:     c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),
+		DefaultScaleMode:        scaleMode,
 		DefaultImageHeight:      c.uintForKeypath("processors.%s.default_image_height", processorName),
 		DefaultImageWidth:       c.uintForKeypath("processors.%s.default_image_width", processorName),
-		MaxImageHeight:          c.uintForKeypath("processors.%s.max_image_height", processorName),
-		MaxImageWidth:           c.uintForKeypath("processors.%s.max_image_width", processorName),
+		MaxImageDimensions:      maxDimensions,
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),
+
+		// DEPRECATED
+		MaintainAspectRatio: c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),
 	}
+
+	if config.MaintainAspectRatio {
+		config.DefaultScaleMode = ScaleAspectFit
+	}
+
+	return config
 }
 
 func (c *configParser) valueForKeypath(valueType reflect.Kind, keypathFormat string, v ...interface{}) interface{} {

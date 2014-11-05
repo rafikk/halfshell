@@ -21,15 +21,23 @@
 package halfshell
 
 import (
-	"fmt"
 	"math"
-	"strings"
 
 	"github.com/rafikk/imagick/imagick"
 )
 
-// ImageProcessor is the public interface for the image processor. It exposes a
-// single method to process an image with options.
+const (
+	ScaleFill       = 10
+	ScaleAspectFit  = 21
+	ScaleAspectFill = 22
+)
+
+var ScaleModes = map[string]uint{
+	"fill":        ScaleFill,
+	"aspect_fit":  ScaleAspectFit,
+	"aspect_fill": ScaleAspectFill,
+}
+
 type ImageProcessor interface {
 	ProcessImage(*Image, *ImageProcessorOptions) error
 }
@@ -37,6 +45,7 @@ type ImageProcessor interface {
 type ImageProcessorOptions struct {
 	Dimensions ImageDimensions
 	BlurRadius float64
+	ScaleMode  uint
 }
 
 type imageProcessor struct {
@@ -51,154 +60,204 @@ func NewImageProcessorWithConfig(config *ProcessorConfig) ImageProcessor {
 	}
 }
 
-// The public method for processing an image. The method receives an original
-// image and options and returns the processed image.
-func (ip *imageProcessor) ProcessImage(image *Image, request *ImageProcessorOptions) *Image {
-	processedImage := Image{}
-	wand := imagick.NewMagickWand()
-	defer wand.Destroy()
+func (ip *imageProcessor) ProcessImage(img *Image, req *ImageProcessorOptions) error {
+	if req.Dimensions == EmptyImageDimensions {
+		req.Dimensions.Width = uint(ip.Config.DefaultImageWidth)
+		req.Dimensions.Height = uint(ip.Config.DefaultImageHeight)
+	}
 
-	wand.ReadImageBlob(image.Bytes)
-	scaleModified, err := ip.scaleWand(wand, request)
+	err := ip.resize(img, req)
 	if err != nil {
-		ip.Logger.Warnf("Error scaling image: %s", err)
-		return nil
+		ip.Logger.Errorf("Error resizing image: %s", err)
+		return err
 	}
 
-	blurModified, err := ip.blurWand(wand, request)
+	err = ip.blur(img, req)
 	if err != nil {
-		ip.Logger.Warnf("Error blurring image: %s", err)
-		return nil
+		ip.Logger.Errorf("Error blurring image: %s", err)
+		return err
 	}
 
-	if !scaleModified && !blurModified {
-		processedImage.Bytes = image.Bytes
-	} else {
-		processedImage.Bytes = wand.GetImageBlob()
-	}
-
-	processedImage.Signature = wand.GetImageSignature()
-	processedImage.MimeType = fmt.Sprintf("image/%s", strings.ToLower(wand.GetImageFormat()))
-
-	return &processedImage
+	return nil
 }
 
-func (ip *imageProcessor) scaleWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (modified bool, err error) {
-	currentDimensions := ImageDimensions{uint64(wand.GetImageWidth()), uint64(wand.GetImageHeight())}
-	newDimensions := ip.getScaledDimensions(currentDimensions, request)
-
-	if newDimensions == currentDimensions {
-		return false, nil
+func (ip *imageProcessor) resize(img *Image, req *ImageProcessorOptions) error {
+	scaleMode := req.ScaleMode
+	if scaleMode == 0 {
+		scaleMode = ip.Config.DefaultScaleMode
 	}
 
-	if err = wand.ResizeImage(uint(newDimensions.Width), uint(newDimensions.Height), imagick.FILTER_LANCZOS, 1); err != nil {
-		ip.Logger.Warnf("ImageMagick error resizing image: %s", err)
-		return true, err
+	resize, err := ip.resizePrepare(img.GetDimensions(), req.Dimensions, scaleMode)
+	if err != nil {
+		return err
 	}
 
-	if err = wand.SetImageInterpolateMethod(imagick.INTERPOLATE_PIXEL_BICUBIC); err != nil {
-		ip.Logger.Warnf("ImageMagick error setting interpoliation method: %s", err)
-		return true, err
+	err = ip.resizeApply(img, resize.Scale)
+	if err != nil {
+		return err
 	}
 
-	if err = wand.StripImage(); err != nil {
-		ip.Logger.Warnf("ImageMagick error stripping image routes and metadata")
-		return true, err
+	err = ip.cropApply(img, resize.Crop)
+	if err != nil {
+		return err
 	}
 
-	if "JPEG" == wand.GetImageFormat() {
-		if err = wand.SetImageInterlaceScheme(imagick.INTERLACE_PLANE); err != nil {
-			ip.Logger.Warnf("ImageMagick error setting the image interlace scheme")
-			return true, err
-		}
-
-		if err = wand.SetImageCompression(imagick.COMPRESSION_JPEG); err != nil {
-			ip.Logger.Warnf("ImageMagick error setting the image compression type")
-			return true, err
-		}
-
-		if err = wand.SetImageCompressionQuality(uint(ip.Config.ImageCompressionQuality)); err != nil {
-			ip.Logger.Warnf("sImageMagick error setting compression quality: %s", err)
-			return true, err
-		}
-	}
-
-	return true, nil
+	return nil
 }
 
-func (ip *imageProcessor) blurWand(wand *imagick.MagickWand, request *ImageProcessorOptions) (modified bool, err error) {
-	if request.BlurRadius != 0 {
-		blurRadius := float64(wand.GetImageWidth()) * request.BlurRadius * ip.Config.MaxBlurRadiusPercentage
-		if err = wand.GaussianBlurImage(blurRadius, blurRadius); err != nil {
-			ip.Logger.Warnf("ImageMagick error setting blur radius: %s", err)
-		}
-		return true, err
-	}
-	return false, nil
-}
-
-func (ip *imageProcessor) getScaledDimensions(currentDimensions ImageDimensions, request *ImageProcessorOptions) ImageDimensions {
-	requestDimensions := request.Dimensions
-	if requestDimensions.Width == 0 && requestDimensions.Height == 0 {
-		requestDimensions = ImageDimensions{Width: ip.Config.DefaultImageWidth, Height: ip.Config.DefaultImageHeight}
+func (ip *imageProcessor) resizePrepare(oldDimensions, reqDimensions ImageDimensions, scaleMode uint) (*ResizeDimensions, error) {
+	resize := &ResizeDimensions{
+		Scale: ImageDimensions{},
+		Crop:  ImageDimensions{},
 	}
 
-	dimensions := ip.scaleToRequestedDimensions(currentDimensions, requestDimensions, request)
-	return ip.clampDimensionsToMaxima(dimensions, request)
-}
+	if reqDimensions == EmptyImageDimensions {
+		return resize, nil
+	}
+	if oldDimensions == reqDimensions {
+		return resize, nil
+	}
 
-func (ip *imageProcessor) scaleToRequestedDimensions(currentDimensions, requestedDimensions ImageDimensions, request *ImageProcessorOptions) ImageDimensions {
-	imageAspectRatio := currentDimensions.AspectRatio()
-	if requestedDimensions.Width > 0 && requestedDimensions.Height > 0 {
-		requestedAspectRatio := requestedDimensions.AspectRatio()
-		ip.Logger.Infof("Requested image ratio %f, image ratio %f, %v", requestedAspectRatio, imageAspectRatio, ip.Config.MaintainAspectRatio)
+	reqDimensions = clampDimensionsToMaxima(oldDimensions, reqDimensions, ip.Config.MaxImageDimensions)
+	oldAspectRatio := oldDimensions.AspectRatio()
 
-		if !ip.Config.MaintainAspectRatio {
-			// If we're not asked to maintain the aspect ratio, give them what they want
-			return requestedDimensions
-		}
+	// Unspecified dimensions are automatically computed relative to the specified
+	// dimension using the old image's aspect ratio.
+	if reqDimensions.Width > 0 && reqDimensions.Height == 0 {
+		reqDimensions.Height = aspectHeight(oldAspectRatio, reqDimensions.Width)
+	} else if reqDimensions.Height > 0 && reqDimensions.Width == 0 {
+		reqDimensions.Width = aspectWidth(oldAspectRatio, reqDimensions.Height)
+	}
 
-		if requestedAspectRatio > imageAspectRatio {
-			// The requested aspect ratio is wider than the image's natural ratio.
-			// Thus means the height is the restraining dimension, so unset the
-			// width and let the height determine the dimensions.
-			return ip.scaleToRequestedDimensions(currentDimensions, ImageDimensions{0, requestedDimensions.Height}, request)
-		} else if requestedAspectRatio < imageAspectRatio {
-			return ip.scaleToRequestedDimensions(currentDimensions, ImageDimensions{requestedDimensions.Width, 0}, request)
+	// Retain the aspect ratio while at least filling the bounds requested. No
+	// cropping will occur but the image will be resized.
+	if scaleMode == ScaleAspectFit {
+		newAspectRatio := reqDimensions.AspectRatio()
+		if newAspectRatio > oldAspectRatio {
+			resize.Scale.Width = aspectWidth(oldAspectRatio, reqDimensions.Height)
+			resize.Scale.Height = reqDimensions.Height
+		} else if newAspectRatio < oldAspectRatio {
+			resize.Scale.Width = reqDimensions.Width
+			resize.Scale.Height = aspectHeight(oldAspectRatio, reqDimensions.Width)
 		} else {
-			return requestedDimensions
+			resize.Scale.Width = reqDimensions.Width
+			resize.Scale.Height = reqDimensions.Height
+		}
+		return resize, nil
+	}
+
+	// Use exact width/height and clip off the parts that bleed. The image is
+	// first resized to ensure clipping occurs on the smallest edges possible.
+	if scaleMode == ScaleAspectFill {
+		newAspectRatio := reqDimensions.AspectRatio()
+		if newAspectRatio > oldAspectRatio {
+			resize.Scale.Width = reqDimensions.Width
+			resize.Scale.Height = aspectHeight(oldAspectRatio, reqDimensions.Width)
+		} else if newAspectRatio < oldAspectRatio {
+			resize.Scale.Width = aspectWidth(oldAspectRatio, reqDimensions.Height)
+			resize.Scale.Height = reqDimensions.Height
+		} else {
+			resize.Scale.Width = reqDimensions.Width
+			resize.Scale.Height = reqDimensions.Height
+		}
+		resize.Crop.Width = reqDimensions.Width
+		resize.Crop.Height = reqDimensions.Height
+		return resize, nil
+	}
+
+	// Use the new dimensions exactly as is. Don't correct for aspect ratio and
+	// don't do any cropping. This is equivalent to ScaleFill.
+	resize.Scale = reqDimensions
+	return resize, nil
+}
+
+func (ip *imageProcessor) resizeApply(img *Image, dimensions ImageDimensions) error {
+	if dimensions == EmptyImageDimensions {
+		return nil
+	}
+
+	err := img.Wand.ResizeImage(dimensions.Width, dimensions.Height, imagick.FILTER_LANCZOS, 1)
+	if err != nil {
+		ip.Logger.Errorf("Failed resizing image: %s", err)
+		return err
+	}
+
+	err = img.Wand.SetImageInterpolateMethod(imagick.INTERPOLATE_PIXEL_BICUBIC)
+	if err != nil {
+		ip.Logger.Errorf("Failed getting interpolation method: %s", err)
+		return err
+	}
+
+	err = img.Wand.StripImage()
+	if err != nil {
+		ip.Logger.Errorf("Failed stripping image metadata: %s", err)
+		return err
+	}
+
+	if img.Wand.GetImageFormat() == "JPEG" {
+		err = img.Wand.SetImageInterlaceScheme(imagick.INTERLACE_PLANE)
+		if err != nil {
+			ip.Logger.Errorf("Failed setting image interlace scheme: %s", err)
+			return err
+		}
+
+		err = img.Wand.SetImageCompression(imagick.COMPRESSION_JPEG)
+		if err != nil {
+			ip.Logger.Errorf("Failed setting image compression type: %s", err)
+			return err
+		}
+
+		err = img.Wand.SetImageCompressionQuality(uint(ip.Config.ImageCompressionQuality))
+		if err != nil {
+			ip.Logger.Errorf("Failed setting compression quality: %s", err)
+			return err
 		}
 	}
 
-	if requestedDimensions.Width > 0 {
-		return ImageDimensions{requestedDimensions.Width, ip.getAspectScaledHeight(imageAspectRatio, requestedDimensions.Width)}
-	}
-
-	if requestedDimensions.Height > 0 {
-		return ImageDimensions{ip.getAspectScaledWidth(imageAspectRatio, requestedDimensions.Height), requestedDimensions.Height}
-	}
-
-	return currentDimensions
+	return nil
 }
 
-func (ip *imageProcessor) clampDimensionsToMaxima(dimensions ImageDimensions, request *ImageProcessorOptions) ImageDimensions {
-	if ip.Config.MaxImageWidth > 0 && dimensions.Width > ip.Config.MaxImageWidth {
-		scaledHeight := ip.getAspectScaledHeight(dimensions.AspectRatio(), ip.Config.MaxImageWidth)
-		return ip.clampDimensionsToMaxima(ImageDimensions{ip.Config.MaxImageWidth, scaledHeight}, request)
+func (ip *imageProcessor) cropApply(img *Image, reqDimensions ImageDimensions) error {
+	if reqDimensions == EmptyImageDimensions {
+		return nil
 	}
-
-	if ip.Config.MaxImageHeight > 0 && dimensions.Height > ip.Config.MaxImageHeight {
-		scaledWidth := ip.getAspectScaledWidth(dimensions.AspectRatio(), ip.Config.MaxImageHeight)
-		return ip.clampDimensionsToMaxima(ImageDimensions{scaledWidth, ip.Config.MaxImageHeight}, request)
-	}
-
-	return dimensions
+	oldDimensions := img.GetDimensions()
+	return img.Wand.CropImage(
+		reqDimensions.Width,
+		reqDimensions.Height,
+		int((oldDimensions.Width-reqDimensions.Width)/2),
+		int((oldDimensions.Height-reqDimensions.Height)/2),
+	)
 }
 
-func (ip *imageProcessor) getAspectScaledHeight(aspectRatio float64, width uint64) uint64 {
-	return uint64(math.Floor(float64(width)/aspectRatio + 0.5))
+func (ip *imageProcessor) blur(image *Image, request *ImageProcessorOptions) error {
+	if request.BlurRadius == 0 {
+		return nil
+	}
+	blurRadius := float64(image.GetWidth()) * request.BlurRadius * ip.Config.MaxBlurRadiusPercentage
+	return image.Wand.GaussianBlurImage(blurRadius, blurRadius)
 }
 
-func (ip *imageProcessor) getAspectScaledWidth(aspectRatio float64, height uint64) uint64 {
-	return uint64(math.Floor(float64(height)*aspectRatio + 0.5))
+func aspectHeight(aspectRatio float64, width uint) uint {
+	return uint(math.Floor(float64(width)/aspectRatio + 0.5))
+}
+
+func aspectWidth(aspectRatio float64, height uint) uint {
+	return uint(math.Floor(float64(height)*aspectRatio + 0.5))
+}
+
+func clampDimensionsToMaxima(imgDimensions, reqDimensions, maxDimensions ImageDimensions) ImageDimensions {
+	if maxDimensions.Width > 0 && reqDimensions.Width > maxDimensions.Width {
+		reqDimensions.Width = maxDimensions.Width
+		reqDimensions.Height = aspectHeight(imgDimensions.AspectRatio(), maxDimensions.Width)
+		return clampDimensionsToMaxima(imgDimensions, reqDimensions, maxDimensions)
+	}
+
+	if maxDimensions.Height > 0 && reqDimensions.Height > maxDimensions.Height {
+		reqDimensions.Width = aspectWidth(imgDimensions.AspectRatio(), maxDimensions.Height)
+		reqDimensions.Height = maxDimensions.Height
+		return clampDimensionsToMaxima(imgDimensions, reqDimensions, maxDimensions)
+	}
+
+	return reqDimensions
 }

@@ -104,3 +104,8 @@ func (d ImageDimensions) AspectRatio() float64 {
 func (d ImageDimensions) String() string {
 	return fmt.Sprintf("%dx%d", d.Width, d.Height)
 }
+
+type ResizeDimensions struct {
+	Scale ImageDimensions
+	Crop  ImageDimensions
+}
