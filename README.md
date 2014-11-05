@@ -51,7 +51,7 @@ Halfshell uses a JSON file for configuration. An example is shown below:
     "processors": {
         "default": {
             "image_compression_quality": 85,
-            "maintain_aspect_ratio": true,
+            "scale_mode": "aspect_fit",
             "max_blur_radius_percentage": 0,
             "max_image_height": 0,
             "max_image_width": 1000
@@ -87,7 +87,7 @@ This will start the server on port 8080, and service requests whose path begins 
     http://localhost:8080/users/joe/default.jpg?w=100&h=100
     http://localhost:8080/blog/posts/announcement.jpg?w=600&h=200
 
-The image_host named group in the route pattern match (e.g., `^/users(?P<image_path>/.*)$`) gets extracted as the request path for the source. In this instance, the file “joe/default.jpg” is requested from the “my-company-profile-photos” S3 bucket. The processor resizes the image to a width and height of 100. Since the maintain_aspect_ratio setting is set to true, the image will have a maximum width and height of 100, but may be smaller in one dimension in order to maintain the aspect ratio.
+The image_host named group in the route pattern match (e.g., `^/users(?P<image_path>/.*)$`) gets extracted as the request path for the source. In this instance, the file “joe/default.jpg” is requested from the “my-company-profile-photos” S3 bucket. The processor resizes the image to a width and height of 100.
 
 ### Server
 
@@ -141,9 +141,27 @@ The compression quality to use for JPEG images.
 
 ##### maintain_aspect_ratio
 
+DEPRECATED: Use the `aspect_fit` `scale_mode` instead.
+
 If this is set to true, the resized images will always maintain the original
 aspect ratio. When set to false, the image will be stretched to fit the width
 and height requested.
+
+##### scale_mode
+
+When changing the dimensions of an image, you may want to crop edges or
+constrain proportions. Use the `scale_mode` setting to define these rules.
+
+A value of `aspect_fit` will change the image size to fit in the given
+dimensions while retaining original proportions. No part of the image will be
+cut away.
+
+A value of `aspect_fill` will change the image size to fit in the given
+dimensions while retaining original proportions. Edges that do not fit in the
+given dimensions will be cut off.
+
+The default behavior is to `fill`, which changes the image size to fit the given
+dimensions and will NOT retain the original proportions.
 
 ##### default_image_width
 
