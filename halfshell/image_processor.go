@@ -30,12 +30,14 @@ const (
 	ScaleFill       = 10
 	ScaleAspectFit  = 21
 	ScaleAspectFill = 22
+	ScaleAspectCrop = 23
 )
 
 var ScaleModes = map[string]uint{
 	"fill":        ScaleFill,
 	"aspect_fit":  ScaleAspectFit,
 	"aspect_fill": ScaleAspectFill,
+	"aspect_crop": ScaleAspectCrop,
 }
 
 type ImageProcessor interface {
@@ -146,9 +148,27 @@ func (ip *imageProcessor) resizePrepare(oldDimensions, reqDimensions ImageDimens
 		return resize, nil
 	}
 
+	// Retain the aspect ratio while filling the bounds requested completely. New
+	// dimensions are at least as large as the requested dimensions. No cropping
+	// will occur but the image will be resized.
+	if scaleMode == ScaleAspectFill {
+		newAspectRatio := reqDimensions.AspectRatio()
+		if newAspectRatio < oldAspectRatio {
+			resize.Scale.Width = aspectWidth(oldAspectRatio, reqDimensions.Height)
+			resize.Scale.Height = reqDimensions.Height
+		} else if newAspectRatio > oldAspectRatio {
+			resize.Scale.Width = reqDimensions.Width
+			resize.Scale.Height = aspectHeight(oldAspectRatio, reqDimensions.Width)
+		} else {
+			resize.Scale.Width = reqDimensions.Width
+			resize.Scale.Height = reqDimensions.Height
+		}
+		return resize, nil
+	}
+
 	// Use exact width/height and clip off the parts that bleed. The image is
 	// first resized to ensure clipping occurs on the smallest edges possible.
-	if scaleMode == ScaleAspectFill {
+	if scaleMode == ScaleAspectCrop {
 		newAspectRatio := reqDimensions.AspectRatio()
 		if newAspectRatio > oldAspectRatio {
 			resize.Scale.Width = reqDimensions.Width
