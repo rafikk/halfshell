@@ -156,12 +156,41 @@ A value of `aspect_fit` will change the image size to fit in the given
 dimensions while retaining original proportions. No part of the image will be
 cut away.
 
-A value of `aspect_fill` will change the image size to fit in the given
+A value of `aspect_fill` will change the image size to at least fit the given
+dimensions while retaining original proportions. No part of the image will be
+cut away.
+
+A value of `aspect_crop` will change the image size to fit in the given
 dimensions while retaining original proportions. Edges that do not fit in the
 given dimensions will be cut off.
 
 The default behavior is to `fill`, which changes the image size to fit the given
 dimensions and will NOT retain the original proportions.
+
+Cheat Sheet:
+
+    Image dimensions: 500x800
+    Requested dimensions: 400x400
+
+    Scale mode: fill
+    New dimensions: 400x400
+    Maintain aspect ratio: NO
+    Cropping: NO
+
+    Scale mode: aspect_fit
+    New dimensions: 250x400
+    Maintain aspect ratio: YES
+    Cropping: NO
+
+    Scale mode: aspect_fill
+    New dimensions: 400x640
+    Maintain aspect ratio: YES
+    Cropping: NO
+
+    Scale mode: aspect_crop
+    New dimensions: 400x400
+    Maintain aspect ratio: YES
+    Cropping: YES
 
 ##### default_image_width
 
