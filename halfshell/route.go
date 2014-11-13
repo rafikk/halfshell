@@ -69,6 +69,7 @@ func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 	width, _ := strconv.ParseUint(r.FormValue("w"), 10, 32)
 	height, _ := strconv.ParseUint(r.FormValue("h"), 10, 32)
 	blurRadius, _ := strconv.ParseFloat(r.FormValue("blur"), 64)
+	focalpoint := r.FormValue("focalpoint")
 
 	scaleModeName := r.FormValue("scale_mode")
 	scaleMode, _ := ScaleModes[scaleModeName]
@@ -77,5 +78,6 @@ func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 		Dimensions: ImageDimensions{uint(width), uint(height)},
 		BlurRadius: blurRadius,
 		ScaleMode:  uint(scaleMode),
+		Focalpoint: NewFocalpointFromString(focalpoint),
 	}
 }
