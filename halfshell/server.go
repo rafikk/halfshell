@@ -69,23 +69,23 @@ func (s *Server) ImageRequestHandler(w *ResponseWriter, r *Request) {
 	s.Logger.Infof("Handling request for image %s with dimensions %v",
 		r.SourceOptions.Path, r.ProcessorOptions.Dimensions)
 
-	image := r.Route.Source.GetImage(r.SourceOptions)
-	if image == nil {
+	image, err := r.Route.Source.GetImage(r.SourceOptions)
+	if err != nil {
 		w.WriteError("Not Found", http.StatusNotFound)
 		return
 	}
+	defer image.Destroy()
 
-	processedImage := r.Route.Processor.ProcessImage(image, r.ProcessorOptions)
-	if processedImage == nil {
-		s.Logger.Warnf("Error processing image data %s to dimensions: %v",
-			r.ProcessorOptions.Dimensions)
+	err = r.Route.Processor.ProcessImage(image, r.ProcessorOptions)
+	if err != nil {
+		s.Logger.Warnf("Error processing image data %s to dimensions: %v", r.ProcessorOptions.Dimensions)
 		w.WriteError("Internal Server Error", http.StatusNotFound)
 		return
 	}
 
 	s.Logger.Infof("Returning resized image %s to dimensions %v",
 		r.SourceOptions.Path, r.ProcessorOptions.Dimensions)
-	w.WriteImage(processedImage)
+	w.WriteImage(image)
 }
 
 func (s *Server) LogRequest(w *ResponseWriter, r *Request) {
@@ -161,10 +161,11 @@ func (hw *ResponseWriter) WriteError(message string, status int) {
 
 // WriteImage writes an image to the output stream and sets the appropriate headers.
 func (hw *ResponseWriter) WriteImage(image *Image) {
-	hw.SetHeader("Content-Type", image.MimeType)
-	hw.SetHeader("Content-Length", fmt.Sprintf("%d", len(image.Bytes)))
+	bytes, size := image.GetBytes()
+	hw.SetHeader("Content-Type", image.GetMIMEType())
+	hw.SetHeader("Content-Length", fmt.Sprintf("%d", size))
 	hw.SetHeader("Cache-Control", "no-transform,public,max-age=86400,s-maxage=2592000")
-	hw.SetHeader("ETag", image.Signature)
+	hw.SetHeader("ETag", image.GetSignature())
 	hw.WriteHeader(http.StatusOK)
-	hw.Write(image.Bytes)
+	hw.Write(bytes)
 }

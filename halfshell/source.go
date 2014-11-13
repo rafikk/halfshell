@@ -33,7 +33,7 @@ var (
 )
 
 type ImageSource interface {
-	GetImage(*ImageSourceOptions) *Image
+	GetImage(*ImageSourceOptions) (*Image, error)
 }
 
 type ImageSourceOptions struct {

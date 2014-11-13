@@ -22,61 +22,90 @@ package halfshell
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
-	"mime"
-	"net/http"
 	"os"
-	"path/filepath"
+	"strings"
+
+	"github.com/rafikk/imagick/imagick"
 )
 
-// Image contains a byte array of the image data and its MIME type.
-// TODO: See if we can use the std library's Image type without incurring
-// the hit of extra copying.
+var EmptyImageDimensions = ImageDimensions{}
+var EmptyResizeDimensions = ResizeDimensions{}
+
 type Image struct {
-	Bytes     []byte
-	MimeType  string
+	Wand      *imagick.MagickWand
 	Signature string
+	destroyed bool
 }
 
-// NewImageFromHTTPResponse returns a pointer to a new Image created from an
-// HTTP response object.
-func NewImageFromHTTPResponse(httpResponse *http.Response) (*Image, error) {
-	imageBytes, err := ioutil.ReadAll(httpResponse.Body)
-	defer httpResponse.Body.Close()
+func NewImageFromBuffer(buffer io.Reader) (image *Image, err error) {
+	bytes, err := ioutil.ReadAll(buffer)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Image{
-		Bytes:    imageBytes,
-		MimeType: httpResponse.Header.Get("Content-Type"),
-	}, nil
-}
-
-// NewImageFromFile returns a pointer to a new Image created from a file.
-func NewImageFromFile(file *os.File) (*Image, error) {
-	imageBytes, err := ioutil.ReadAll(file)
+	image = &Image{Wand: imagick.NewMagickWand()}
+	err = image.Wand.ReadImageBlob(bytes)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Image{
-		Bytes:    imageBytes,
-		MimeType: mime.TypeByExtension(filepath.Ext(file.Name())),
-	}, nil
+	return image, nil
 }
 
-// ImageDimensions is the width and height of an image.
+func NewImageFromFile(file *os.File) (image *Image, err error) {
+	image, err = NewImageFromBuffer(file)
+	return image, err
+}
+
+func (i *Image) GetMIMEType() string {
+	return fmt.Sprintf("image/%s", strings.ToLower(i.Wand.GetImageFormat()))
+}
+
+func (i *Image) GetBytes() (bytes []byte, size int) {
+	bytes = i.Wand.GetImageBlob()
+	size = len(bytes)
+	return bytes, size
+}
+
+func (i *Image) GetWidth() uint {
+	return i.Wand.GetImageWidth()
+}
+
+func (i *Image) GetHeight() uint {
+	return i.Wand.GetImageHeight()
+}
+
+func (i *Image) GetDimensions() ImageDimensions {
+	return ImageDimensions{i.GetWidth(), i.GetHeight()}
+}
+
+func (i *Image) GetSignature() string {
+	return i.Wand.GetImageSignature()
+}
+
+func (i *Image) Destroy() {
+	if !i.destroyed {
+		i.Wand.Destroy()
+		i.destroyed = true
+	}
+}
+
 type ImageDimensions struct {
-	Width  uint64
-	Height uint64
+	Width  uint
+	Height uint
 }
 
-// AspectRatio returns the image dimension's aspect ratio.
 func (d ImageDimensions) AspectRatio() float64 {
 	return float64(d.Width) / float64(d.Height)
 }
 
 func (d ImageDimensions) String() string {
 	return fmt.Sprintf("%dx%d", d.Width, d.Height)
+}
+
+type ResizeDimensions struct {
+	Scale ImageDimensions
+	Crop  ImageDimensions
 }
