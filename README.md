@@ -216,6 +216,14 @@ For Gaussian blur, the radius used is this value * the image width. This allows
 you to use a blur parameter (from 0-1) which will apply the same proportion of
 blurring to each image size.
 
+##### auto_orient
+
+If set to true, the image processor will respect EXIF rotation data. A common
+case are photos taken with a camera (eg: iPhone, digital camera) in landscape
+mode. The built-in gyroscope will embed rotation data in the image via EXIF.
+
+Disabled by default.
+
 ### Routes
 
 The `routes` block is a mapping of route patterns to route configuration values.
