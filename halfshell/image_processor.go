@@ -68,7 +68,15 @@ func (ip *imageProcessor) ProcessImage(img *Image, req *ImageProcessorOptions) e
 		req.Dimensions.Height = uint(ip.Config.DefaultImageHeight)
 	}
 
-	err := ip.resize(img, req)
+	var err error
+
+	err = ip.orient(img, req)
+	if err != nil {
+		ip.Logger.Errorf("Error orienting image: %s", err)
+		return err
+	}
+
+	err = ip.resize(img, req)
 	if err != nil {
 		ip.Logger.Errorf("Error resizing image: %s", err)
 		return err
@@ -81,6 +89,49 @@ func (ip *imageProcessor) ProcessImage(img *Image, req *ImageProcessorOptions) e
 	}
 
 	return nil
+}
+
+func (ip *imageProcessor) orient(img *Image, req *ImageProcessorOptions) error {
+	if !ip.Config.AutoOrient {
+		return nil
+	}
+
+	orientation := img.Wand.GetImageOrientation()
+
+	switch orientation {
+	case imagick.ORIENTATION_UNDEFINED:
+	case imagick.ORIENTATION_TOP_LEFT:
+		return nil
+	}
+
+	transparent := imagick.NewPixelWand()
+	defer transparent.Destroy()
+	transparent.SetColor("none")
+
+	var err error
+
+	switch orientation {
+	case imagick.ORIENTATION_TOP_RIGHT:
+		err = img.Wand.FlopImage()
+	case imagick.ORIENTATION_BOTTOM_RIGHT:
+		err = img.Wand.RotateImage(transparent, 180)
+	case imagick.ORIENTATION_BOTTOM_LEFT:
+		err = img.Wand.FlipImage()
+	case imagick.ORIENTATION_LEFT_TOP:
+		err = img.Wand.TransposeImage()
+	case imagick.ORIENTATION_RIGHT_TOP:
+		err = img.Wand.RotateImage(transparent, 90)
+	case imagick.ORIENTATION_RIGHT_BOTTOM:
+		err = img.Wand.TransverseImage()
+	case imagick.ORIENTATION_LEFT_BOTTOM:
+		err = img.Wand.RotateImage(transparent, 270)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return img.Wand.SetImageOrientation(imagick.ORIENTATION_TOP_LEFT)
 }
 
 func (ip *imageProcessor) resize(img *Image, req *ImageProcessorOptions) error {

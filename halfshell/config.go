@@ -73,6 +73,7 @@ type ProcessorConfig struct {
 	DefaultImageWidth       uint64
 	MaxImageDimensions      ImageDimensions
 	MaxBlurRadiusPercentage float64
+	AutoOrient              bool
 
 	// DEPRECATED
 	MaintainAspectRatio bool
@@ -228,6 +229,7 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		DefaultImageWidth:       c.uintForKeypath("processors.%s.default_image_width", processorName),
 		MaxImageDimensions:      maxDimensions,
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),
+		AutoOrient:              c.boolForKeypath("processors.%s.auto_orient", processorName),
 
 		// DEPRECATED
 		MaintainAspectRatio: c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),
