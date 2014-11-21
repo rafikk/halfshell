@@ -56,8 +56,7 @@ func (s *S3ImageSource) GetImage(request *ImageSourceOptions) (*Image, error) {
 		return nil, err
 	}
 	if httpResponse.StatusCode != 200 {
-		s.Logger.Warnf("Error downlading image (url=%v)", httpRequest.URL)
-		return nil, err
+		return nil, fmt.Errorf("Error downlading image (url=%v)", httpRequest.URL)
 	}
 	image, err := NewImageFromBuffer(httpResponse.Body)
 	if err != nil {
