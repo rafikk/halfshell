@@ -51,7 +51,7 @@ Halfshell uses a JSON file for configuration. An example is shown below:
     "processors": {
         "default": {
             "image_compression_quality": 85,
-            "scale_mode": "aspect_fit",
+            "default_scale_mode": "aspect_fit",
             "max_blur_radius_percentage": 0,
             "max_image_height": 0,
             "max_image_width": 1000
@@ -147,10 +147,11 @@ If this is set to true, the resized images will always maintain the original
 aspect ratio. When set to false, the image will be stretched to fit the width
 and height requested.
 
-##### scale_mode
+##### default_scale_mode
 
 When changing the dimensions of an image, you may want to crop edges or
-constrain proportions. Use the `scale_mode` setting to define these rules.
+constrain proportions. Use the `default_scale_mode` setting to define these
+rules (`scale_mode` as a URL query parameter).
 
 A value of `aspect_fit` will change the image size to fit in the given
 dimensions while retaining original proportions. No part of the image will be
