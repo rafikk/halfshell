@@ -145,14 +145,18 @@ func (ip *imageProcessor) resize(img *Image, req *ImageProcessorOptions) error {
 		return err
 	}
 
-	err = ip.resizeApply(img, resize.Scale)
-	if err != nil {
-		return err
+	if resize.Scale != EmptyImageDimensions {
+		err = ip.resizeApply(img, resize.Scale)
+		if err != nil {
+			return err
+		}
 	}
 
-	err = ip.cropApply(img, resize.Crop)
-	if err != nil {
-		return err
+	if resize.Crop != EmptyImageDimensions {
+		err = ip.cropApply(img, resize.Crop)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
