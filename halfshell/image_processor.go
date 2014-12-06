@@ -295,8 +295,8 @@ func (ip *imageProcessor) resizeApply(img *Image, dimensions ImageDimensions) er
 
 func (ip *imageProcessor) cropApply(img *Image, reqDimensions ImageDimensions, focalpoint Focalpoint) error {
 	oldDimensions := img.GetDimensions()
-	x := int(float64(oldDimensions.Width)*focalpoint.X - float64(reqDimensions.Width)*focalpoint.X)
-	y := int(float64(oldDimensions.Height)*focalpoint.Y - float64(reqDimensions.Height)*focalpoint.Y)
+	x := int(focalpoint.X * (float64(oldDimensions.Width) - float64(reqDimensions.Width)))
+	y := int(focalpoint.Y * (float64(oldDimensions.Height) - float64(reqDimensions.Height)))
 	w := reqDimensions.Width
 	h := reqDimensions.Height
 	return img.Wand.CropImage(w, h, x, y)
