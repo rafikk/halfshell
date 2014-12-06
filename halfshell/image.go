@@ -33,6 +33,7 @@ import (
 
 var EmptyImageDimensions = ImageDimensions{}
 var EmptyResizeDimensions = ResizeDimensions{}
+var DefaultFocalPoint = Focalpoint{0.5, 0.5}
 
 type Image struct {
 	Wand      *imagick.MagickWand
@@ -123,10 +124,18 @@ type Focalpoint struct {
 func NewFocalpointFromString(s string) (fp Focalpoint) {
 	pair := strings.Split(s, ",")
 	if len(pair) != 2 {
-		return Focalpoint{0.5, 0.5}
+		return DefaultFocalPoint
 	}
 
-	x, _ := strconv.ParseFloat(pair[0], 64)
-	y, _ := strconv.ParseFloat(pair[1], 64)
+	x, err := strconv.ParseFloat(pair[0], 64)
+	if err != nil {
+		return DefaultFocalPoint
+	}
+
+	y, err := strconv.ParseFloat(pair[1], 64)
+	if err != nil {
+		return DefaultFocalPoint
+	}
+
 	return Focalpoint{x, y}
 }
