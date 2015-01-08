@@ -48,6 +48,7 @@ type ImageProcessorOptions struct {
 	Dimensions ImageDimensions
 	BlurRadius float64
 	ScaleMode  uint
+	Focalpoint Focalpoint
 }
 
 type imageProcessor struct {
@@ -153,7 +154,7 @@ func (ip *imageProcessor) resize(img *Image, req *ImageProcessorOptions) error {
 	}
 
 	if resize.Crop != EmptyImageDimensions {
-		err = ip.cropApply(img, resize.Crop)
+		err = ip.cropApply(img, resize.Crop, req.Focalpoint)
 		if err != nil {
 			return err
 		}
@@ -292,17 +293,13 @@ func (ip *imageProcessor) resizeApply(img *Image, dimensions ImageDimensions) er
 	return nil
 }
 
-func (ip *imageProcessor) cropApply(img *Image, reqDimensions ImageDimensions) error {
-	if reqDimensions == EmptyImageDimensions {
-		return nil
-	}
+func (ip *imageProcessor) cropApply(img *Image, reqDimensions ImageDimensions, focalpoint Focalpoint) error {
 	oldDimensions := img.GetDimensions()
-	return img.Wand.CropImage(
-		reqDimensions.Width,
-		reqDimensions.Height,
-		int((oldDimensions.Width-reqDimensions.Width)/2),
-		int((oldDimensions.Height-reqDimensions.Height)/2),
-	)
+	x := int(focalpoint.X * (float64(oldDimensions.Width) - float64(reqDimensions.Width)))
+	y := int(focalpoint.Y * (float64(oldDimensions.Height) - float64(reqDimensions.Height)))
+	w := reqDimensions.Width
+	h := reqDimensions.Height
+	return img.Wand.CropImage(w, h, x, y)
 }
 
 func (ip *imageProcessor) blur(image *Image, request *ImageProcessorOptions) error {

@@ -25,6 +25,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/rafikk/imagick/imagick"
@@ -32,6 +33,7 @@ import (
 
 var EmptyImageDimensions = ImageDimensions{}
 var EmptyResizeDimensions = ResizeDimensions{}
+var DefaultFocalPoint = Focalpoint{0.5, 0.5}
 
 type Image struct {
 	Wand      *imagick.MagickWand
@@ -108,4 +110,32 @@ func (d ImageDimensions) String() string {
 type ResizeDimensions struct {
 	Scale ImageDimensions
 	Crop  ImageDimensions
+}
+
+// Focalpoint is a float pair representing the location of the image subject.
+// (0.5, 0.5) is the middle. (1, 1) is the bottom right. (0, 0) is the top left.
+type Focalpoint struct {
+	X float64
+	Y float64
+}
+
+// NewFocalpointFromString splits the given string into a Focalpoint struct. The
+// string format should be: "X,Y". For example: "0.1,0.1".
+func NewFocalpointFromString(s string) (fp Focalpoint) {
+	pair := strings.Split(s, ",")
+	if len(pair) != 2 {
+		return DefaultFocalPoint
+	}
+
+	x, err := strconv.ParseFloat(pair[0], 64)
+	if err != nil {
+		return DefaultFocalPoint
+	}
+
+	y, err := strconv.ParseFloat(pair[1], 64)
+	if err != nil {
+		return DefaultFocalPoint
+	}
+
+	return Focalpoint{x, y}
 }
