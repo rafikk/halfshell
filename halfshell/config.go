@@ -49,6 +49,9 @@ type RouteConfig struct {
 	Name            string
 	Pattern         *regexp.Regexp
 	ImagePathIndex  int
+	WidthIndex      int
+	HeightIndex     int
+	ExtensionIndex  int
 	SourceConfig    *SourceConfig
 	ProcessorConfig *ProcessorConfig
 }
@@ -130,7 +133,7 @@ func (c *configParser) parse() *Config {
 
 	routesData := c.data["routes"].(map[string]interface{})
 	for routePatternString := range routesData {
-		routeConfig := &RouteConfig{ImagePathIndex: -1}
+		routeConfig := &RouteConfig{ImagePathIndex: -1, WidthIndex: -1, HeightIndex: -1, ExtensionIndex: -1}
 		routeData := routesData[routePatternString].(map[string]interface{})
 		pattern, err := regexp.Compile(routePatternString)
 		if err != nil {
@@ -141,6 +144,15 @@ func (c *configParser) parse() *Config {
 		for i, expName := range pattern.SubexpNames() {
 			if expName == "image_path" {
 				routeConfig.ImagePathIndex = i
+			}
+			if expName == "width" {
+				routeConfig.WidthIndex = i
+			}
+			if expName == "height" {
+				routeConfig.HeightIndex = i
+			}
+			if expName == "extension" {
+				routeConfig.ExtensionIndex = i
 			}
 		}
 

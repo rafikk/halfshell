@@ -34,6 +34,9 @@ type Route struct {
 	Name           string
 	Pattern        *regexp.Regexp
 	ImagePathIndex int
+	WidthIndex     int
+	HeightIndex    int
+	ExtensionIndex int
 	Processor      ImageProcessor
 	Source         ImageSource
 	Statter        Statter
@@ -46,6 +49,9 @@ func NewRouteWithConfig(config *RouteConfig, statterConfig *StatterConfig) *Rout
 		Name:           config.Name,
 		Pattern:        config.Pattern,
 		ImagePathIndex: config.ImagePathIndex,
+		WidthIndex:     config.WidthIndex,
+		HeightIndex:    config.HeightIndex,
+		ExtensionIndex: config.ExtensionIndex,
 		Processor:      NewImageProcessorWithConfig(config.ProcessorConfig),
 		Source:         NewImageSourceWithConfig(config.SourceConfig),
 		Statter:        NewStatterWithConfig(config, statterConfig),
@@ -66,8 +72,19 @@ func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 	matches := p.Pattern.FindAllStringSubmatch(r.URL.Path, -1)[0]
 	path := matches[p.ImagePathIndex]
 
-	width, _ := strconv.ParseUint(r.FormValue("w"), 10, 32)
-	height, _ := strconv.ParseUint(r.FormValue("h"), 10, 32)
+	if p.ExtensionIndex > -1 {
+		path = path + matches[p.ExtensionIndex]
+	}
+
+	var width uint64
+	var height uint64
+	if p.WidthIndex > -1 {
+		width, _ = strconv.ParseUint(matches[p.WidthIndex], 10, 32)
+		height, _ = strconv.ParseUint(matches[p.HeightIndex], 10, 32)
+	} else {
+		width, _ = strconv.ParseUint(r.FormValue("w"), 10, 32)
+		height, _ = strconv.ParseUint(r.FormValue("h"), 10, 32)
+	}
 	blurRadius, _ := strconv.ParseFloat(r.FormValue("blur"), 64)
 	focalpoint := r.FormValue("focalpoint")
 
