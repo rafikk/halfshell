@@ -30,7 +30,12 @@
             "processor": "default"
         },
         "^/complex(?P<image_path>/.*?)(\\.(?P<width>[0-9]+)x(?P<height>[0-9]+)(?P<extension>\\..*))?$": {
-            "name": "complex",
+            "name": "dimensions-embedded-in-filename",
+            "source": "default",
+            "processor": "default"
+        },
+        "^/complex(/(?P<width>[0-9]+)x(?P<height>[0-9]+))?(?P<image_path>/.*)?$": {
+            "name": "dimensions-in-path",
             "source": "default",
             "processor": "default"
         }

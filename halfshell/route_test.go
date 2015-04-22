@@ -34,27 +34,63 @@ func TestRoutes(t *testing.T) {
 	}
 }
 
-func TestComplexRoute(t *testing.T) {
+func TestRouteWithDimensionsInFilename(t *testing.T) {
 
-	complexRoute := RouteForName("complex")
+	route := RouteForName("dimensions-embedded-in-filename")
 
-	if complexRoute == nil {
-		t.Fatal("complexRoute should not be nil")
+	if route == nil {
+		t.Fatal("route should not be nil")
 	}
 
 	reqForOriginalImage, _ := http.NewRequest("GET", "http://example.com/complex/image.jpg", nil)
 
-	if !complexRoute.ShouldHandleRequest(reqForOriginalImage) {
-		t.Fail()
+	if !route.ShouldHandleRequest(reqForOriginalImage) {
+		t.Error("Route should handle request for original image")
 	}
 
 	req, _ := http.NewRequest("GET", "http://example.com/complex/image.100x50.jpg", nil)
 
-	if !complexRoute.ShouldHandleRequest(req) {
+	if !route.ShouldHandleRequest(req) {
+		t.Error("Route should handle rqeuest for resized image")
+	}
+
+	complexSourceOptions, complexProcessorOptions := route.SourceAndProcessorOptionsForRequest(req)
+
+	if "/image.jpg" != complexSourceOptions.Path {
 		t.Fail()
 	}
 
-	complexSourceOptions, complexProcessorOptions := complexRoute.SourceAndProcessorOptionsForRequest(req)
+	if 100 != complexProcessorOptions.Dimensions.Width {
+		t.Fail()
+	}
+
+	if 50 != complexProcessorOptions.Dimensions.Height {
+		t.Fail()
+	}
+
+}
+
+func TestRouteWithDimensionsInPath(t *testing.T) {
+
+	route := RouteForName("dimensions-in-path")
+
+	if route == nil {
+		t.Fatal("route should not be nil")
+	}
+
+	reqForOriginalImage, _ := http.NewRequest("GET", "http://example.com/complex/image.jpg", nil)
+
+	if !route.ShouldHandleRequest(reqForOriginalImage) {
+		t.Error("Route should handle request for original image")
+	}
+
+	req, _ := http.NewRequest("GET", "http://example.com/complex/100x50/image.jpg", nil)
+
+	if !route.ShouldHandleRequest(req) {
+		t.Error("Route should handle rqeuest for resized image")
+	}
+
+	complexSourceOptions, complexProcessorOptions := route.SourceAndProcessorOptionsForRequest(req)
 
 	if "/image.jpg" != complexSourceOptions.Path {
 		t.Fail()
