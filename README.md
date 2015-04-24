@@ -129,6 +129,7 @@ For the S3 source type, the bucket to request images from.
 ##### directory
 
 For the Filesystem source type, the local directory to request images from.
+For the S3 source type, the directory prefixed with the request path.
 
 ### Processors
 
