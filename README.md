@@ -246,16 +246,16 @@ The name of the source to use for the route.
 
 The name of the processor to use for the route.
 
-## Contributing
-
-Contributions are welcome.
-
 ## Adopters
 
 - [Oyster](https://www.oysterbooks.com)
 - [Storehouse](https://www.storehouse.co)
 
 If your organization is using Halfshell, consider adding a link and sending us a pull request!
+
+## Contributing
+
+Contributions are welcome.
 
 ### Building
 
