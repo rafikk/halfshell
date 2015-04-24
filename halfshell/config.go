@@ -61,7 +61,6 @@ type SourceConfig struct {
 	S3AccessKey string
 	S3Bucket    string
 	S3SecretKey string
-	PathPrefix  string
 	Directory   string
 }
 
@@ -206,7 +205,6 @@ func (c *configParser) parseSourceConfig(sourceName string) *SourceConfig {
 		S3AccessKey: c.stringForKeypath("sources.%s.s3_access_key", sourceName),
 		S3SecretKey: c.stringForKeypath("sources.%s.s3_secret_key", sourceName),
 		S3Bucket:    c.stringForKeypath("sources.%s.s3_bucket", sourceName),
-		PathPrefix:  c.stringForKeypath("sources.%s.path_prefix", sourceName),
 		Directory:   c.stringForKeypath("sources.%s.directory", sourceName),
 	}
 }

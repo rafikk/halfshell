@@ -81,7 +81,7 @@ func (s *FileSystemImageSource) GetImage(request *ImageSourceOptions) (*Image, e
 func (s *FileSystemImageSource) fileNameForRequest(request *ImageSourceOptions) string {
 	// Remove the leading / from the file name and replace the
 	// directory separator (/) with something safe for file names (_)
-	return filepath.Join(s.Config.Directory, s.Config.PathPrefix, strings.Replace(strings.TrimLeft(request.Path, string(filepath.Separator)), string(filepath.Separator), "_", -1))
+	return filepath.Join(s.Config.Directory, strings.Replace(strings.TrimLeft(request.Path, string(filepath.Separator)), string(filepath.Separator), "_", -1))
 }
 
 func init() {
