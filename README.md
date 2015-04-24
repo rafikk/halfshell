@@ -128,8 +128,8 @@ For the S3 source type, the bucket to request images from.
 
 ##### directory
 
-For the Filesystem source type, the local directory to request images from.
-For the S3 source type, the directory prefixed with the request path.
+For the Filesystem source type, the local directory to request images from. Required.
+For the S3 source type, `directory` corresponds to an optional base directory in the S3 bucket.
 
 ### Processors
 
@@ -249,6 +249,13 @@ The name of the processor to use for the route.
 ## Contributing
 
 Contributions are welcome.
+
+## Adopters
+
+- [Oyster](https://www.oysterbooks.com)
+- [Storehouse](https://www.storehouse.co)
+
+If your organization is using Halfshell, consider adding a link and sending us a pull request!
 
 ### Building
 
