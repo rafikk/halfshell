@@ -69,7 +69,9 @@ func (s *S3ImageSource) GetImage(request *ImageSourceOptions) (*Image, error) {
 }
 
 func (s *S3ImageSource) signedHTTPRequestForRequest(request *ImageSourceOptions) *http.Request {
-	imageURLPathComponents := strings.Split(request.Path, "/")
+	path := s.Config.Directory + request.Path
+	imageURLPathComponents := strings.Split(path, "/")
+
 	for index, component := range imageURLPathComponents {
 		component = url.QueryEscape(component)
 		imageURLPathComponents[index] = component
