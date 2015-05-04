@@ -7,6 +7,7 @@ build:
 
 clean:
 	@rm -rf bin/
+	@rm -rf result/
 
 deps:
 	@echo "$(OK_COLOR)==> Installing dependencies$(NO_COLOR)"
