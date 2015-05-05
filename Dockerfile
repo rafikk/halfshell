@@ -4,10 +4,7 @@ MAINTAINER Rafik Salama <rafik@oysterbooks.com>
 WORKDIR /opt/go/src/github.com/oysterbooks/halfshell
 ENV GOPATH /opt/go
 
-RUN apt-get update && apt-get install -qy software-properties-common python-software-properties
-RUN add-apt-repository ppa:gophers/go && apt-get update
-
-RUN apt-get install -qy \
+RUN apt-get update && apt-get install -qy \
     build-essential \
     git \
     wget \
