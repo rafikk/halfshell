@@ -39,11 +39,11 @@ with goPackages; let
   };
 
 in buildGoPackage {
-  name = name;
   goPackagePath = "github.com/oysterbooks/halfshell";
   src = buildSrc;
   propagatedBuildInputs = [ go-halfshell ];
 } // {
+  name = name;
   meta = {
     homepage = "https://github.com/oysterbooks/halfshell";
     maintainers = [
