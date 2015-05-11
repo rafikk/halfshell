@@ -40,6 +40,7 @@ with goPackages; let
 
 in buildGoPackage {
   goPackagePath = "github.com/oysterbooks/halfshell";
+  name = name;
   src = buildSrc;
   propagatedBuildInputs = [ go-halfshell ];
 } // {
