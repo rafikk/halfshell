@@ -17,4 +17,7 @@ deps:
 format:
 	go fmt ./...
 
-.PHONY: clean format deps build
+test:
+	go test ./...
+
+.PHONY: clean format deps build test

@@ -1,0 +1,43 @@
+{
+    "server": {
+        "port": 8080,
+        "read_timeout": 5,
+        "write_timeout": 30
+    },
+    "statsd": {
+      "host": "0",
+      "port": 12345
+    },
+    "sources": {
+        "default": {
+            "type": "filesystem",
+            "directory": "testdata/images"
+        }
+    },
+    "processors": {
+        "default": {
+            "image_compression_quality": 85,
+            "default_scale_mode": "aspect_crop",
+            "max_blur_radius_percentage": 0,
+            "max_image_height": 0,
+            "max_image_width": 1000
+        }
+    },
+    "routes": {
+        "^/basic(?P<image_path>/.*)$": {
+            "name": "basic",
+            "source": "default",
+            "processor": "default"
+        },
+        "^/complex(?P<image_path>/.*?)(\\.(?P<width>[0-9]+)x(?P<height>[0-9]+)(?P<extension>\\..*))?$": {
+            "name": "dimensions-embedded-in-filename",
+            "source": "default",
+            "processor": "default"
+        },
+        "^/complex(/(?P<width>[0-9]+)x(?P<height>[0-9]+))?(?P<image_path>/.*)?$": {
+            "name": "dimensions-in-path",
+            "source": "default",
+            "processor": "default"
+        }
+    }
+}
