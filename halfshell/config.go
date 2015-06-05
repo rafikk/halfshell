@@ -47,6 +47,7 @@ type ServerConfig struct {
 // RouteConfig holds the configuration settings for a particular route.
 type RouteConfig struct {
 	Name            string
+	CacheControl    string
 	Pattern         *regexp.Regexp
 	ImagePathIndex  int
 	SourceConfig    *SourceConfig
@@ -156,6 +157,9 @@ func (c *configParser) parse() *Config {
 		routeConfig.Pattern = pattern
 		routeConfig.ProcessorConfig = processorConfigsByName[processorKey]
 		routeConfig.SourceConfig = sourceConfigsByName[sourceKey]
+		if _, ok := routeData["cache_control"]; ok {
+			routeConfig.CacheControl = routeData["cache_control"].(string)
+		}
 
 		config.RouteConfigs = append(config.RouteConfigs, routeConfig)
 	}

@@ -65,7 +65,8 @@ Halfshell uses a JSON file for configuration. An example is shown below:
         "^/blog(?P<image_path>/.*)$": {
             "name": "blog-post-images",
             "source": "blog-post-images",
-            "processor": "default"
+            "processor": "default",
+            "cache_control": "no-transform,public,max-age=2592000,s-maxage=31104000"
         },
         "^/users(?P<image_path>/.*)$": {
             "name": "profile-photos",
@@ -245,6 +246,10 @@ The name of the source to use for the route.
 ##### processor
 
 The name of the processor to use for the route.
+
+##### cache_control
+
+The Cache-Control response header to set. If left empty or unspecified, `no-transform,public,max-age=86400,s-maxage=2592000` will be set.
 
 ## Adopters
 

@@ -36,6 +36,7 @@ type Route struct {
 	ImagePathIndex int
 	Processor      ImageProcessor
 	Source         ImageSource
+	CacheControl   string
 	Statter        Statter
 }
 
@@ -46,6 +47,7 @@ func NewRouteWithConfig(config *RouteConfig, statterConfig *StatterConfig) *Rout
 		Name:           config.Name,
 		Pattern:        config.Pattern,
 		ImagePathIndex: config.ImagePathIndex,
+		CacheControl:   config.CacheControl,
 		Processor:      NewImageProcessorWithConfig(config.ProcessorConfig),
 		Source:         NewImageSourceWithConfig(config.SourceConfig),
 		Statter:        NewStatterWithConfig(config, statterConfig),

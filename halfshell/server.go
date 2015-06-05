@@ -85,6 +85,12 @@ func (s *Server) ImageRequestHandler(w *ResponseWriter, r *Request) {
 
 	s.Logger.Infof("Returning resized image %s to dimensions %v",
 		r.SourceOptions.Path, r.ProcessorOptions.Dimensions)
+
+	cacheControl := r.Route.CacheControl
+	if r.Route.CacheControl == "" {
+		cacheControl = "no-transform,public,max-age=86400,s-maxage=2592000"
+	}
+	w.SetHeader("Cache-Control", cacheControl)
 	w.WriteImage(image)
 }
 
@@ -164,7 +170,6 @@ func (hw *ResponseWriter) WriteImage(image *Image) {
 	bytes, size := image.GetBytes()
 	hw.SetHeader("Content-Type", image.GetMIMEType())
 	hw.SetHeader("Content-Length", fmt.Sprintf("%d", size))
-	hw.SetHeader("Cache-Control", "no-transform,public,max-age=86400,s-maxage=2592000")
 	hw.SetHeader("ETag", image.GetSignature())
 	hw.WriteHeader(http.StatusOK)
 	hw.Write(bytes)
