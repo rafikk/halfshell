@@ -1,6 +1,6 @@
 # Halfshell
 
-Halfshell is a proxy server for processing images on the fly. It allows you to dynamically resize (and apply effects to) images hosted on S3 or a local filesystem via query parameters. It supports creating “families” of images which can read from distinct image sources and enable different configuration values for image processing and retrieval. See the [introduction blog post](http://engineering.oysterbooks.com/post/79458380259/resizing-images-on-the-fly-with-go).
+Halfshell is a proxy server for processing images on the fly. It allows you to dynamically resize (and apply effects to) images hosted on S3, a local filesystem or an http source via query parameters. It supports creating “families” of images which can read from distinct image sources and enable different configuration values for image processing and retrieval. See the [introduction blog post](http://engineering.oysterbooks.com/post/79458380259/resizing-images-on-the-fly-with-go).
 
 Current version: `0.1.1`
 
@@ -10,7 +10,7 @@ Halfshell was architected to be extensible from the beginning. The system is com
 
 ### Sources
 
-Sources are repositories from which an “original” image can be loaded. They return an image given a path. Currently, sources for downloading images from S3 and a local filesystem are included.
+Sources are repositories from which an “original” image can be loaded. They return an image given a path. Currently, sources for downloading images from S3, a local filesystem and http are included.
 
 ### Processors
 
