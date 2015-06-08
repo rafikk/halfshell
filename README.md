@@ -251,6 +251,12 @@ The name of the processor to use for the route.
 
 The Cache-Control response header to set. If left empty or unspecified, `no-transform,public,max-age=86400,s-maxage=2592000` will be set.
 
+### Health Checks
+
+You can check the server health at `/healthcheck` and `/health`. If the server
+is up and running, the HTTP client will receive a response with status code
+`200`.
+
 ## Adopters
 
 - [Oyster](https://www.oysterbooks.com)
