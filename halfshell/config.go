@@ -76,9 +76,16 @@ type ProcessorConfig struct {
 	MaxImageDimensions      ImageDimensions
 	MaxBlurRadiusPercentage float64
 	AutoOrient              bool
+	Formats                 map[string]FormatConfig
 
 	// DEPRECATED
 	MaintainAspectRatio bool
+}
+
+type FormatConfig struct {
+	Width  uint64
+	Height uint64
+	Blur   float64
 }
 
 // StatterConfig holds configuration data for StatsD
@@ -227,6 +234,19 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		Height: uint(c.uintForKeypath("processors.%s.max_image_height", processorName)),
 	}
 
+	formats := make(map[string]FormatConfig)
+	processor := c.data["processors"].(map[string]interface{})[processorName].(map[string]interface{})
+	if _, ok := processor["formats"]; ok {
+		for formatName := range processor["formats"].(map[string]interface{}) {
+			format := FormatConfig{
+				Width:  c.uintForKeypath("processors.%s.formats.%s.width", processorName, formatName),
+				Height: c.uintForKeypath("processors.%s.formats.%s.height", processorName, formatName),
+				Blur:   c.floatForKeypath("processors.%s.formats.%s.blur", processorName, formatName),
+			}
+			formats[formatName] = format
+		}
+	}
+
 	config := &ProcessorConfig{
 		Name: processorName,
 		ImageCompressionQuality: c.uintForKeypath("processors.%s.image_compression_quality", processorName),
@@ -236,6 +256,7 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		MaxImageDimensions:      maxDimensions,
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),
 		AutoOrient:              c.boolForKeypath("processors.%s.auto_orient", processorName),
+		Formats:                 formats,
 
 		// DEPRECATED
 		MaintainAspectRatio: c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),

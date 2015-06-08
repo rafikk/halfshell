@@ -35,6 +35,7 @@ type Route struct {
 	Pattern        *regexp.Regexp
 	ImagePathIndex int
 	Processor      ImageProcessor
+	Formats        map[string]FormatConfig
 	Source         ImageSource
 	CacheControl   string
 	Statter        Statter
@@ -49,6 +50,7 @@ func NewRouteWithConfig(config *RouteConfig, statterConfig *StatterConfig) *Rout
 		ImagePathIndex: config.ImagePathIndex,
 		CacheControl:   config.CacheControl,
 		Processor:      NewImageProcessorWithConfig(config.ProcessorConfig),
+		Formats:        config.ProcessorConfig.Formats,
 		Source:         NewImageSourceWithConfig(config.SourceConfig),
 		Statter:        NewStatterWithConfig(config, statterConfig),
 	}
@@ -68,11 +70,19 @@ func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 	matches := p.Pattern.FindAllStringSubmatch(r.URL.Path, -1)[0]
 	path := matches[p.ImagePathIndex]
 
-	width, _ := strconv.ParseUint(r.FormValue("w"), 10, 32)
-	height, _ := strconv.ParseUint(r.FormValue("h"), 10, 32)
-	blurRadius, _ := strconv.ParseFloat(r.FormValue("blur"), 64)
-	focalpoint := r.FormValue("focalpoint")
+	var width, height uint64
+	var blurRadius float64
+	if formatName := r.FormValue("format"); formatName == "" {
+		width, _ = strconv.ParseUint(r.FormValue("w"), 10, 32)
+		height, _ = strconv.ParseUint(r.FormValue("h"), 10, 32)
+		blurRadius, _ = strconv.ParseFloat(r.FormValue("blur"), 64)
+	} else {
+		width = p.Formats[formatName].Width
+		height = p.Formats[formatName].Height
+		blurRadius = p.Formats[formatName].Blur
+	}
 
+	focalpoint := r.FormValue("focalpoint")
 	scaleModeName := r.FormValue("scale_mode")
 	scaleMode, _ := ScaleModes[scaleModeName]
 

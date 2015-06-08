@@ -227,6 +227,18 @@ mode. The built-in gyroscope will embed rotation data in the image via EXIF.
 
 Disabled by default.
 
+##### formats
+
+```
+formats: {
+    "large": { "width": 1280, "height": 768, "blur": 0 },
+    "medium": { "width": 640, "height": 480, "blur": 0 }
+}
+```
+
+If specified, the `w`, `h` and `blur` parameters will be ignored from the
+request. Instead will only be read the `format` parameter.
+
 ### Routes
 
 The `routes` block is a mapping of route patterns to route configuration values.
