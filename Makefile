@@ -17,4 +17,12 @@ deps:
 format:
 	go fmt ./...
 
+package:
+	$(eval COMMIT := $(shell git rev-parse HEAD))
+	echo "Building version: $(COMMIT)"
+	mkdir -p artifact/$(COMMIT)
+	cp bin/halfshell artifact/$(COMMIT)
+	cd artifact/$(COMMIT)/ && tar -pczf ../$(COMMIT).tar.gz .
+	rm -rf artifact/$(COMMIT)/
+
 .PHONY: clean format deps build
