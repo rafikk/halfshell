@@ -271,7 +271,7 @@ func (ip *imageProcessor) resizeApply(img *Image, dimensions ImageDimensions) er
 	}
 
 	if img.Wand.GetImageFormat() == "JPEG" {
-		err = img.Wand.SetImageInterlaceScheme(imagick.INTERLACE_PLANE)
+		err = img.Wand.SetInterlaceScheme(imagick.INTERLACE_PLANE)
 		if err != nil {
 			ip.Logger.Errorf("Failed setting image interlace scheme: %s", err)
 			return err
