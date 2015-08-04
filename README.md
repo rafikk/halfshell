@@ -282,8 +282,7 @@ Contributions are welcome.
 
 ### Building
 
-There's a Vagrant file set up to ease development. After you have the
-Vagrant box set up, cd to the /vagrant directory and run `make`.
+There's a Nix file set up to ease development. After you have Nix installed, and have installed the halfshell package, activate the nix shell, then simply run `make`.
 
 ### Notes
 
