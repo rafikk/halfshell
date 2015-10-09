@@ -90,6 +90,5 @@ func (p *Route) SourceAndProcessorOptionsForRequest(r *http.Request) (
 		Dimensions: ImageDimensions{uint(width), uint(height)},
 		BlurRadius: blurRadius,
 		ScaleMode:  uint(scaleMode),
-		Focalpoint: NewFocalpointFromString(focalpoint),
-	}
+		Focalpoint: NewFocalpointFromString(focalpoint)}
 }

@@ -23,11 +23,16 @@ package halfshell
 import (
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"reflect"
 	"regexp"
 	"strings"
 )
+
+type WaterMark struct {
+	WaterMarkImage *Image
+}
 
 // Config is the primary configuration of Halfshell. It contains the server
 // configuration as well as a list of route configurations.
@@ -77,6 +82,7 @@ type ProcessorConfig struct {
 	MaxBlurRadiusPercentage float64
 	AutoOrient              bool
 	Formats                 map[string]FormatConfig
+	WaterMark               *WaterMark
 
 	// DEPRECATED
 	MaintainAspectRatio bool
@@ -247,6 +253,24 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		}
 	}
 
+	watermark := new(WaterMark)
+
+	waterMarkUrl := c.stringForKeypath("processors.%s.water_image_url", processorName)
+
+	if waterMarkUrl != "" {
+		res, err := http.Get(waterMarkUrl)
+		if err != nil {
+			panic("Water Mark Image is not accessiable")
+		}
+		defer res.Body.Close()
+		m, err := NewImageFromBuffer(res.Body)
+		if err != nil {
+			panic("Water Mark Image is incorrect")
+		}
+
+		watermark.WaterMarkImage = m
+	}
+
 	config := &ProcessorConfig{
 		Name: processorName,
 		ImageCompressionQuality: c.uintForKeypath("processors.%s.image_compression_quality", processorName),
@@ -257,6 +281,7 @@ func (c *configParser) parseProcessorConfig(processorName string) *ProcessorConf
 		MaxBlurRadiusPercentage: c.floatForKeypath("processors.%s.max_blur_radius_percentage", processorName),
 		AutoOrient:              c.boolForKeypath("processors.%s.auto_orient", processorName),
 		Formats:                 formats,
+		WaterMark:               watermark,
 
 		// DEPRECATED
 		MaintainAspectRatio: c.boolForKeypath("processors.%s.maintain_aspect_ratio", processorName),

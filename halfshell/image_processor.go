@@ -89,6 +89,19 @@ func (ip *imageProcessor) ProcessImage(img *Image, req *ImageProcessorOptions) e
 		return err
 	}
 
+	err = ip.watermark(img, req)
+	if err != nil {
+		ip.Logger.Errorf("Error applying watermark image: %s", err)
+		return err
+	}
+
+	return nil
+}
+
+func (ip *imageProcessor) watermark(img *Image, req *ImageProcessorOptions) error {
+	if ip.Config.WaterMark.WaterMarkImage != nil {
+		return ip.watermarkApply(img, ip.Config.WaterMark)
+	}
 	return nil
 }
 
@@ -308,6 +321,40 @@ func (ip *imageProcessor) blur(image *Image, request *ImageProcessorOptions) err
 	}
 	blurRadius := float64(image.GetWidth()) * request.BlurRadius * ip.Config.MaxBlurRadiusPercentage
 	return image.Wand.GaussianBlurImage(blurRadius, blurRadius)
+}
+
+func (ip *imageProcessor) watermarkApply(img *Image, watermark *WaterMark) error {
+	imgDimensions := img.GetDimensions()
+
+	if imgDimensions.Width < 100 || imgDimensions.Height < 100 {
+		return nil
+	} else {
+
+		waterMarkImage := watermark.WaterMarkImage.Wand.Clone()
+
+		defer waterMarkImage.Clear()
+
+		watermarkDimensions := watermark.WaterMarkImage.GetDimensions()
+
+		resultDimensions := new(ImageDimensions)
+		resultDimensions.Width = imgDimensions.Width
+		resultDimensions.Height = imgDimensions.Height
+
+		if imgDimensions.Height < watermarkDimensions.Height || imgDimensions.Width < watermarkDimensions.Width {
+			err := waterMarkImage.ScaleImage(imgDimensions.Width, imgDimensions.Height)
+			if err != nil {
+				return nil
+			}
+			resultDimensions.Width = imgDimensions.Width
+			resultDimensions.Height = imgDimensions.Height
+
+		}
+
+		x := (imgDimensions.Width - resultDimensions.Width) / 2
+		y := (imgDimensions.Height - resultDimensions.Height) / 2
+
+		return img.Wand.CompositeImage(waterMarkImage, watermark.WaterMarkImage.Wand.GetImageCompose(), int(x), int(y))
+	}
 }
 
 func aspectHeight(aspectRatio float64, width uint) uint {
