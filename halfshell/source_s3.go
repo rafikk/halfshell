@@ -77,7 +77,7 @@ func (s *S3ImageSource) signedHTTPRequestForRequest(request *ImageSourceOptions)
 		imageURLPathComponents[index] = component
 	}
 	requestURL := &url.URL{
-		Opaque: strings.Join(imageURLPathComponents, "/"),
+		Path:   strings.Join(imageURLPathComponents, "/"),
 		Scheme: "http",
 		Host:   fmt.Sprintf("%s.s3.amazonaws.com", s.Config.S3Bucket),
 	}
