@@ -1,4 +1,4 @@
-.env
-bin
-*.py[co]
+bin/
 artifact/
+
+vendor/

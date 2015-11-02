@@ -1,0 +1,9 @@
+import:
+- package: github.com/oysterbooks/halfshell
+  vcs: git
+  version: master
+  repo: git@github.com:bookerzzz/halfshell.git
+- package: github.com/oysterbooks/s3
+  version: 315a1a1706fb062688a380d62e94bcb127c20d6d
+- package: github.com/rafikk/imagick
+  version: 5d8e94fca9ba310b00bd507ee148b1b03876e2f8
