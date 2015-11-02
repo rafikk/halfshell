@@ -3,7 +3,8 @@ NO_COLOR=\033[0m
 
 build:
 	@echo "$(OK_COLOR)==> Compiling binary$(NO_COLOR)"
-	go build -o bin/halfshell
+	mkdir -p bin
+	GOBIN=bin/ go install
 
 clean:
 	@rm -rf bin/
@@ -11,8 +12,9 @@ clean:
 
 deps:
 	@echo "$(OK_COLOR)==> Installing dependencies$(NO_COLOR)"
-	@go get -d -v ./...
-	@go list -f '{{range .TestImports}}{{.}} {{end}}' ./... | xargs -n1 go get -d
+	glide up
+	rm -rf vendor/github.com/oysterbooks/halfshell
+	ln -s $CURDIR vendor/github.com/oysterbooks/halfshell
 
 format:
 	go fmt ./...
