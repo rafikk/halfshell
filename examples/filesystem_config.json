@@ -5,43 +5,39 @@
         "write_timeout": 30
     },
     "statsd": {
-      "host": "0",
-      "port": 12345
+       "enabled": false
     },
     "sources": {
         "default": {
             "type": "filesystem",
-            "directory": "/tmp"
+            "directory": "images/default/"
         },
-        "blog-post-images": {
-            "directory": "/tmp/my-company-blog-post-images"
+        "stock_A": {
+            "directory": "images/stock_A/"
         },
-        "profile-photos": {
-            "directory": "/tmp/my-company-profile-photos"
+        "stock_B": {
+            "directory": "images/stock_B/"
         }
     },
     "processors": {
         "default": {
-            "image_compression_quality": 85,
-            "default_scale_mode": "aspect_fit",
-            "max_blur_radius_percentage": 0,
-            "max_image_height": 0,
-            "max_image_width": 1000
-        },
-        "profile-photos": {
-            "default_image_width": 120
         }
     },
     "routes": {
-        "^/blog(?P<image_path>/.*)$": {
-            "name": "blog-post-images",
-            "source": "blog-post-images",
+        "^/render(?P<image_path>/.*)$": {
+            "name": "default_route",
+            "source": "default",
             "processor": "default"
         },
-        "^/users(?P<image_path>/.*)$": {
-            "name": "profile-photos",
-            "source": "profile-photos",
-            "processor": "profile-photos"
+        "^/render/A/(?P<image_path>/.*)$": {
+            "name": "stock_A_route",
+            "source": "stock_A",
+            "processor": "default"
+        },
+        "^/render/B/(?P<image_path>/.*)$": {
+            "name": "stock_B_route",
+            "source": "stock_B",
+            "processor": "default"
         }
     }
 }
