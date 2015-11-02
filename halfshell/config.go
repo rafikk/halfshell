@@ -188,7 +188,7 @@ func (c *configParser) parseStatterConfig() *StatterConfig {
 
 	host, _ := statsd["host"].(string)
 	if host == "" {
-		host = "0"
+		host = "localhost"
 	}
 
 	port, _ := statsd["port"].(float64)

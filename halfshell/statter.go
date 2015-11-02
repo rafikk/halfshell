@@ -43,29 +43,31 @@ type statsdStatter struct {
 
 func NewStatterWithConfig(routeConfig *RouteConfig, statterConfig *StatterConfig) Statter {
 	logger := NewLogger("stats.%s", routeConfig.Name)
-	hostname, _ := os.Hostname()
+	var s statsdStatter
 
-	addr, err := net.ResolveUDPAddr(
-		"udp", fmt.Sprintf("%s:%d", statterConfig.Host, statterConfig.Port))
-	if err != nil {
-		logger.Errorf("Unable to resolve UDP address: %v", err)
-		return nil
+	if statterConfig.Enabled {
+		var err error
+		s.Hostname, err = os.Hostname()
+		if err != nil {
+			logger.Errorf("Unable to find hostname: %v", err)
+			return nil
+		}
+
+		s.addr, err = net.ResolveUDPAddr(
+			"udp", fmt.Sprintf("%s:%d", statterConfig.Host, statterConfig.Port))
+		if err != nil {
+			logger.Errorf("Unable to resolve UDP address: %v", err)
+			return nil
+		}
+
+		s.conn, err = net.DialUDP("udp", nil, s.addr)
+		if err != nil {
+			logger.Errorf("Unable to create UDP connection: %v", err)
+			return nil
+		}
 	}
 
-	conn, err := net.DialUDP("udp", nil, addr)
-	if err != nil {
-		logger.Errorf("Unable to create UDP connection: %v", err)
-		return nil
-	}
-
-	return &statsdStatter{
-		conn:     conn,
-		addr:     addr,
-		Name:     routeConfig.Name,
-		Hostname: hostname,
-		Logger:   logger,
-		Enabled:  statterConfig.Enabled,
-	}
+	return &s
 }
 
 func (s *statsdStatter) RegisterRequest(w *ResponseWriter, r *Request) {
