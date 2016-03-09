@@ -287,7 +287,7 @@ Docker set up [Docker Installation](https://docs.docker.com/engine/installation/
 
 1. `docker build -f Dockerfile .` (Copy image id after build is complete)
 2. `docker run --publish 8080:8080  [IMAGE ID] config.json`
-3. Hit `localhost:8080\your_route\path_to_image.jpg`
+3. Hit `[VIRTUALBOX_IP]:8080\your_route\path_to_image.jpg`
 
 ### Notes
 
