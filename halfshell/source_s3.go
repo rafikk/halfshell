@@ -28,7 +28,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/oysterbooks/s3"
+	"github.com/rafikk/s3"
 )
 
 const (
