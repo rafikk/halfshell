@@ -21,6 +21,7 @@
 package halfshell
 
 import (
+	"os"
 	"fmt"
 	"net"
 	"net/http"
@@ -48,7 +49,12 @@ func NewServerWithConfigAndRoutes(config *ServerConfig, routes []*Route) *Server
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	hw := s.NewResponseWriter(w)
 	hr := s.NewRequest(r)
+
+	hostname, _ := os.Hostname()
+	hw.SetHeader("Hostname", hostname)
+
 	defer s.LogRequest(hw, hr)
+
 	switch {
 	case "/healthcheck" == hr.URL.Path || "/health" == hr.URL.Path:
 		hw.Write([]byte("OK"))
@@ -171,6 +177,7 @@ func (hw *ResponseWriter) WriteImage(image *Image) {
 	hw.SetHeader("Content-Type", image.GetMIMEType())
 	hw.SetHeader("Content-Length", fmt.Sprintf("%d", size))
 	hw.SetHeader("ETag", image.GetSignature())
+	hw.SetHeader("Accept-Ranges", "bytes")
 	hw.WriteHeader(http.StatusOK)
 	hw.Write(bytes)
 }
